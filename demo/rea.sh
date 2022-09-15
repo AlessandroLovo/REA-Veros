@@ -14,6 +14,7 @@ for n in $(seq 0 $NITER) ; do
 
     if [[ $n == 0 ]] ; then
         echo ---Initializing ensemble---
+        python setup_info.py $it_folder $nens
         for ens in $(seq -f "%03g" 1 $nens) ; do
             python ou.py $T $it_folder/e$ens-
         done
@@ -21,11 +22,11 @@ for n in $(seq 0 $NITER) ; do
         prev_it=$(printf "%04d" $(( n - 1 )) )
         prev_it_folder="$folder/i$prev_it"
 
-        echo $prev_it_folder
-
         echo ---Computing scores---
         python compute_scores.py $k $prev_it_folder
 
+        # set up info file for this iteration
+        python setup_info.py $it_folder $nens
         echo ---Selecting---
         python select.py $it_folder $prev_it_folder
 
