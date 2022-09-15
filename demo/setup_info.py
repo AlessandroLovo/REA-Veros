@@ -15,6 +15,6 @@ if __name__ == '__main__':
 
     d = {}
     for e in range(nens):
-        d[f'e{d+1:03d}'] = {}
+        d[f'e{e+1:03d}'] = {}
 
     dict2json({'members': d}, f'{folder}/info.json')

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-NITER=20
+NITER=2
 T=10
-folder="./test"
+folder="./__test__"
 nens=5
 k=0.2
 
@@ -28,7 +28,7 @@ for n in $(seq 0 $NITER) ; do
         # set up info file for this iteration
         python setup_info.py $it_folder $nens
         echo ---Selecting---
-        python select.py $it_folder $prev_it_folder
+        python resample.py $it_folder $prev_it_folder
 
         echo ---Propagating---
         for ens in $(seq -f "%03g" 1 $nens) ; do

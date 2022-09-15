@@ -11,6 +11,7 @@ def update(t,x):
     return t + dt, x + dx
 
 if __name__ == '__main__':
+    # print('Starting')
     niter = int(sys.argv[1])
     prefix = sys.argv[2]
 
@@ -21,6 +22,8 @@ if __name__ == '__main__':
             raise ValueError('Incompatible restart file format')
     else:
         ic = (0,0.5)
+
+    # print('Retrieved arguments')
 
     traj = []
     traj.append(ic)
