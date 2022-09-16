@@ -24,7 +24,7 @@ def compute_score(traj):
 
 if __name__ == '__main__':
     k = float(sys.argv[1])
-    folder = sys.argv[2]
+    folder = sys.argv[2].rstrip('/')
 
     d = json2dict(f'{folder}/info.json')
 

@@ -20,8 +20,10 @@ import sys
 import os
 
 if __name__ == '__main__':
-    current_folder = sys.argv[1]
-    previous_folder = sys.argv[2]
+    current_folder = sys.argv[1].rstrip('/')
+    previous_folder = sys.argv[2].rstrip('/')
+
+    prev_fold_dir = previous_folder.split('/')[-1]
 
     cur_d = json2dict(f'{current_folder}/info.json')
     prev_d = json2dict(f'{previous_folder}/info.json')
@@ -34,7 +36,10 @@ if __name__ == '__main__':
     # apply the selection
     survivors = np.random.choice(ensemble_size,size=ensemble_size,p=weights)
 
-    # setup the parent attribute and create the init file
+    cur_d['parents'] = len(set(survivors))
+    cur_d['previous_folder'] = prev_fold_dir
+
+    # setup the parent attribute and create the init file for each ensemble member
     for i,e in enumerate(cur_d['members']):
         parent = list(prev_d['members'])[survivors[i]]
         cur_d['members'][e]['parent'] = parent

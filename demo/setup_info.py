@@ -10,7 +10,7 @@ def dict2json(d, filename):
 import sys
 
 if __name__ == '__main__':
-    folder = sys.argv[1]
+    folder = sys.argv[1].rstrip('/')
     nens = int(sys.argv[2]) # number of ensemble members
 
     d = {}
