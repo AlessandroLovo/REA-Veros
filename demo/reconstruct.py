@@ -19,8 +19,8 @@ import numpy as np
 import sys
 # import os
 
-if __name__ == '__main__':
-    last_folder = sys.argv[1].rstrip('/')
+def reconstruct(last_folder):
+    last_folder = last_folder.rstrip('.')
     root_folder = '.'
     if '/' in last_folder:
         root_folder, last_folder = last_folder.rsplit('/',1)
@@ -68,3 +68,7 @@ if __name__ == '__main__':
 
     print('\n\nDONE\n\n')
 
+if __name__ == '__main__':
+    last_folder = sys.argv[1]
+    
+    reconstruct(last_folder)

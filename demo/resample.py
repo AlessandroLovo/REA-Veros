@@ -19,9 +19,9 @@ import numpy as np
 import sys
 import os
 
-if __name__ == '__main__':
-    current_folder = sys.argv[1].rstrip('/')
-    previous_folder = sys.argv[2].rstrip('/')
+def resample(current_folder, previous_folder):
+    current_folder = current_folder.rstrip('/')
+    previous_folder = previous_folder.rstrip('/')
 
     prev_fold_dir = previous_folder.split('/')[-1]
 
@@ -48,3 +48,11 @@ if __name__ == '__main__':
 
     # write the info dict to file
     dict2json(cur_d, f'{current_folder}/info.json')
+
+
+if __name__ == '__main__':
+    current_folder = sys.argv[1]
+    previous_folder = sys.argv[2]
+
+    resample(current_folder, previous_folder)
+    

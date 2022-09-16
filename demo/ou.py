@@ -10,20 +10,13 @@ def update(t,x):
     dx = (mu - x)*theta*dt + np.sqrt(2*sigma*dt)*np.random.standard_normal()
     return t + dt, x + dx
 
-if __name__ == '__main__':
-    # print('Starting')
-    niter = int(sys.argv[1])
-    prefix = sys.argv[2]
-
-    if len(sys.argv) > 3:
-        restart_file = sys.argv[3]
+def run(niter, prefix, restart_file=None):
+    if restart_file is not None:
         ic = tuple(np.load(restart_file))
         if len(ic) != 2:
             raise ValueError('Incompatible restart file format')
     else:
         ic = (0,0.5)
-
-    # print('Retrieved arguments')
 
     traj = []
     traj.append(ic)
@@ -37,3 +30,15 @@ if __name__ == '__main__':
 
     np.save(f'{prefix}restart.npy',traj[-1])
 
+
+if __name__ == '__main__':
+    # print('Starting')
+    niter = int(sys.argv[1])
+    prefix = sys.argv[2]
+    restart_file = None
+
+    if len(sys.argv) > 3:
+        restart_file = sys.argv[3]
+
+    run(niter, prefix, restart_file)
+    

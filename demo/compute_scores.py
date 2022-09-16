@@ -18,13 +18,11 @@ def dict2json(d, filename):
 import numpy as np
 import sys
 
-def compute_score(traj):
+def eval_score(traj):
     return traj[1,-1] - traj[1,0]
 
-
-if __name__ == '__main__':
-    k = float(sys.argv[1])
-    folder = sys.argv[2].rstrip('/')
+def compute_score(k, folder):
+    folder = folder.rstrip('/')
 
     d = json2dict(f'{folder}/info.json')
 
@@ -33,7 +31,7 @@ if __name__ == '__main__':
     for e in d['members']:
         traj = np.load(f'{folder}/{e}-traj.npy')
 
-        score = compute_score(traj)
+        score = eval_score(traj)
         scores.append(score)
         d['members'][e]['score'] = score
 
@@ -52,4 +50,9 @@ if __name__ == '__main__':
     dict2json(d, f'{folder}/info.json')
 
 
+if __name__ == '__main__':
+    k = float(sys.argv[1])
+    folder = sys.argv[2]
 
+    compute_score(k, folder)
+    
