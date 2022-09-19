@@ -1,10 +1,10 @@
 #!/bin/bash
 
-NITER=2
+NITER=15
 T=10
-folder="./__test__"
 nens=5
 k=0.2
+folder="./__test__/k__$k--nens__$nens--T__$T"
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
