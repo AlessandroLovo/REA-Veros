@@ -2,8 +2,8 @@
 
 NITER=15
 T=10
-nens=5
-k=0.2
+nens=20
+k=2
 folder="./__test__/k__$k--nens__$nens--T__$T"
 
 for n in $(seq 0 $NITER) ; do
