@@ -12,7 +12,7 @@ ITER0=0
 for i in {0..4}
 do
   IC=$(( $START + $i ))
-  RES=$(( $START + 2*$i ))
+  RES=$(( $START + 2*$i )) # why the 2* ?
   echo "Iteration: $IC"
   echo "Restart file: $RES"
   #ITER=$(( $ITER0 + $i ))
@@ -36,7 +36,7 @@ done
 
 FIL0="REA$START""i$ITER"
 
-while [ 149 -gt $IC ]
+while [ 149 -gt $IC ] # what does this do?
 do
   while true
   do
