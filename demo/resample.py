@@ -1,23 +1,9 @@
-import json
-
-def json2dict(filename):
-    '''
-    Reads a json file `filename` as a dictionary
-    '''
-    with open(filename, 'r') as j:
-        d = json.load(j)
-    return d
-
-def dict2json(d, filename):
-    '''
-    Saves a dictionary `d` to a json file `filename`
-    '''
-    with open(filename, 'w') as j:
-        json.dump(d, j, indent=4)
-
 import numpy as np
 import sys
 import os
+
+sys.path.append('../')
+import utilities as ut
 
 def resample(current_folder, previous_folder):
     current_folder = current_folder.rstrip('/')
@@ -25,8 +11,8 @@ def resample(current_folder, previous_folder):
 
     prev_fold_dir = previous_folder.split('/')[-1]
 
-    cur_d = json2dict(f'{current_folder}/info.json')
-    prev_d = json2dict(f'{previous_folder}/info.json')
+    cur_d = ut.json2dict(f'{current_folder}/info.json')
+    prev_d = ut.json2dict(f'{previous_folder}/info.json')
 
     ensemble_size = len(prev_d['members'])
 
@@ -47,7 +33,7 @@ def resample(current_folder, previous_folder):
         os.system(f"cp {previous_folder}/{parent}-restart.npy {current_folder}/{e}-init.npy")
 
     # write the info dict to file
-    dict2json(cur_d, f'{current_folder}/info.json')
+    ut.dict2json(cur_d, f'{current_folder}/info.json')
 
 
 if __name__ == '__main__':

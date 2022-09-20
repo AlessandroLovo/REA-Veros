@@ -1,23 +1,9 @@
-import json
-
-def json2dict(filename):
-    '''
-    Reads a json file `filename` as a dictionary
-    '''
-    with open(filename, 'r') as j:
-        d = json.load(j)
-    return d
-
-def dict2json(d, filename):
-    '''
-    Saves a dictionary `d` to a json file `filename`
-    '''
-    with open(filename, 'w') as j:
-        json.dump(d, j, indent=4)
-
 import numpy as np
 import sys
 # import os
+
+sys.path.append('../')
+import utilities as ut
 
 def reconstruct(last_folder):
     last_folder = last_folder.rstrip('.')
@@ -27,7 +13,7 @@ def reconstruct(last_folder):
 
     d = {'last_folder': last_folder, 'members': {}, 'folders': [last_folder]}
 
-    info = json2dict(f'{root_folder}/{last_folder}/info.json')
+    info = ut.json2dict(f'{root_folder}/{last_folder}/info.json')
     
     parents = set([])
     for i,e in enumerate(info['members']):
@@ -39,7 +25,7 @@ def reconstruct(last_folder):
         prev_folder = info['previous_folder']
         print(f'Opening {prev_folder}')
 
-        info = json2dict(f'{root_folder}/{prev_folder}/info.json')
+        info = ut.json2dict(f'{root_folder}/{prev_folder}/info.json')
         d['folders'].append(prev_folder)
 
         if 'previous_folder' not in info:
@@ -64,7 +50,7 @@ def reconstruct(last_folder):
 
     print('Saving')
 
-    dict2json(d, f'{root_folder}/reconstructed.json')
+    ut.dict2json(d, f'{root_folder}/reconstructed.json')
 
     print('\n\nDONE\n\n')
 

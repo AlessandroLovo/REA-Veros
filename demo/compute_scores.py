@@ -1,22 +1,8 @@
-import json
-
-def json2dict(filename):
-    '''
-    Reads a json file `filename` as a dictionary
-    '''
-    with open(filename, 'r') as j:
-        d = json.load(j)
-    return d
-
-def dict2json(d, filename):
-    '''
-    Saves a dictionary `d` to a json file `filename`
-    '''
-    with open(filename, 'w') as j:
-        json.dump(d, j, indent=4)
-
 import numpy as np
 import sys
+
+sys.path.append('../')
+import utilities as ut
 
 def eval_score(traj):
     return traj[1,-1] - traj[1,0]
@@ -24,7 +10,7 @@ def eval_score(traj):
 def compute_score(k, folder):
     folder = folder.rstrip('/')
 
-    d = json2dict(f'{folder}/info.json')
+    d = ut.json2dict(f'{folder}/info.json')
 
     # compute the scores
     scores = []
@@ -47,7 +33,7 @@ def compute_score(k, folder):
         d['members'][e]['weight'] = scores[i]
 
     # save the dictionary to file
-    dict2json(d, f'{folder}/info.json')
+    ut.dict2json(d, f'{folder}/info.json')
 
 
 if __name__ == '__main__':

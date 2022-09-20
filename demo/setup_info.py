@@ -1,13 +1,7 @@
-import json
-
-def dict2json(d, filename):
-    '''
-    Saves a dictionary `d` to a json file `filename`
-    '''
-    with open(filename, 'w') as j:
-        json.dump(d, j, indent=4)
-
 import sys
+
+sys.path.append('../')
+import utilities as ut
 
 def setup_info(folder, nens):
     folder = folder.rstrip('/')
@@ -16,7 +10,7 @@ def setup_info(folder, nens):
     for e in range(nens):
         d[f'e{e+1:03d}'] = {}
 
-    dict2json({'members': d}, f'{folder}/info.json')
+    ut.dict2json({'members': d}, f'{folder}/info.json')
 
 
 if __name__ == '__main__':
