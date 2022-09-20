@@ -15,8 +15,8 @@ logger.level = logging.INFO
 
 
 def eval_score(traj):
-    return traj[1,-1] - traj[1,0]
-
+    return traj[-1,1] - traj[0,1]
+    
 
 
 def compute_score(k, folder):
@@ -26,25 +26,26 @@ def compute_score(k, folder):
 
     # compute the scores
     logger.info('Computing scores for each ensemble member')
-    scores = []
+    escores = []
     for e in d['members']:
         traj = np.load(f'{folder}/{e}-traj.npy')
 
         score = eval_score(traj)
-        scores.append(score)
+        escore = np.exp(k*score)
+        escores.append(escore)
         d['members'][e]['score'] = score
+        d['members'][e]['escore'] = escore
 
     # normalize the scores
     logger.info('Normalizing scores')
-    scores = np.array(scores)
-    scores = np.exp(k*scores)
-    norm_factor = np.sum(scores)
-    scores /= norm_factor
+    escores = np.array(escores)
+    norm_factor = np.sum(escores)
+    escores /= norm_factor
 
     # save in the dictionary
-    d['norm_factor'] = norm_factor
+    d['norm_factor'] = norm_factor/len(escores) # in the papaers the normalization factor is defined as the average escore, not the sum
     for i,e in enumerate(d['members']):
-        d['members'][e]['weight'] = scores[i]
+        d['members'][e]['weight'] = escores[i]
 
     # save the dictionary to file
     ut.dict2json(d, f'{folder}/info.json')

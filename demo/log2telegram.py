@@ -12,7 +12,7 @@ else:
 logger.level = logging.INFO
 
 if __name__ == '__main__':
-    print(sys.argv)
+    logger.debug(str(sys.argv))
     msg = sys.argv[1].strip('"').replace('\\n', '\n')
 
     th = None
