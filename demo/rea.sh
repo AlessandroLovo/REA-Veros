@@ -75,7 +75,7 @@ python log2telegram.py \""Starting $NITER iterations in folder $folder"\" $TARGS
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
-    echo "------------Iteration $_n-------------"
+    python log2telegram.py \""------------Iteration $_n-------------"\" $TARGS
     it_folder="$folder/i$_n"
     mkdir -p $it_folder # create the iteration folder
 
@@ -107,9 +107,9 @@ for n in $(seq 0 $NITER) ; do
     fi
 done
 
-echo "------------Reconstructing-------------"
+python log2telegram.py \""------------Reconstructing-------------"\" $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""TASK COMPLETED"\" $TARGS
+python log2telegram.py \""\\n\\nTASK COMPLETED"\" $TARGS
 echo
 echo

@@ -16,7 +16,7 @@ def run(niter, prefix, restart_file=None):
         if len(ic) != 2:
             raise ValueError('Incompatible restart file format')
     else:
-        ic = (0,0.5)
+        ic = (0.,0.)
 
     traj = []
     traj.append(ic)
