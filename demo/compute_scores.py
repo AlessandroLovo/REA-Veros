@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 sys.path.append('../')
-import utilities as ut
+import general_purpose.utilities as ut
 
 def eval_score(traj):
     return traj[1,-1] - traj[1,0]

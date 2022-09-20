@@ -3,7 +3,7 @@ import sys
 # import os
 
 sys.path.append('../')
-import utilities as ut
+import general_purpose.utilities as ut
 
 def reconstruct(last_folder):
     last_folder = last_folder.rstrip('.')

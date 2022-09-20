@@ -1,7 +1,7 @@
 import sys
 
 sys.path.append('../')
-import utilities as ut
+import general_purpose.utilities as ut
 
 def setup_info(folder, nens):
     folder = folder.rstrip('/')

@@ -6,7 +6,7 @@ NITER=15
 T=10
 nens=20
 k=2
-TBT='~/REAVbot.txt'
+TBT='~/REAVbot.txt' #telegram bot token
 CHAT_ID='~/CHAT_ID.txt'
 
 while [[ $# -gt 0 ]]; do
