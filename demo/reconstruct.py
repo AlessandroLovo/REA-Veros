@@ -1,9 +1,19 @@
 import numpy as np
 import sys
 # import os
+import logging
 
 sys.path.append('../')
 import general_purpose.utilities as ut
+
+if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.handlers = [logging.StreamHandler(sys.stdout)]
+else:
+    logger = logging.getLogger(__name__)
+logger.level = logging.INFO
+
+
 
 def reconstruct(last_folder):
     last_folder = last_folder.rstrip('.')
@@ -23,7 +33,7 @@ def reconstruct(last_folder):
     
     while True:
         prev_folder = info['previous_folder']
-        print(f'Opening {prev_folder}')
+        logger.info(f'Opening {prev_folder}')
 
         info = ut.json2dict(f'{root_folder}/{prev_folder}/info.json')
         d['folders'].append(prev_folder)
@@ -42,17 +52,17 @@ def reconstruct(last_folder):
         # move back one step by setting the new parents as the now grandparents
         parents = set(grand_parents.values())
 
-    print('Reversing time')
+    logger.info('Reversing time')
 
     d['folders'] = d['folders'][::-1]
     for e, parent_list in d['members'].items():
         d['members'][e] = parent_list[::-1]
 
-    print('Saving')
+    logger.info('Saving')
 
     ut.dict2json(d, f'{root_folder}/reconstructed.json')
 
-    print('\n\nDONE\n\n')
+    logger.log(35,'DONE')
 
 if __name__ == '__main__':
     last_folder = sys.argv[1]
