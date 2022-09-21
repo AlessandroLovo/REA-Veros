@@ -110,7 +110,7 @@ def reconstruct(last_folder: str, write=False):
     logger.info('Reversing time')
 
     d['folders'] = d['folders'][::-1]
-    d['parents'] = d['parents'][::-1]
+    d['independent_parents'] = d['independent_parents'][::-1]
     for e in d['members'].values():
         e['ancestry'] = e['ancestry'][::-1]
 

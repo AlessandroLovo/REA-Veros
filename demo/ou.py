@@ -22,10 +22,10 @@ import sys
 dt = 0.01
 mu = 0
 theta = 1
-sigma = 0.5
+sigma = 1
 
 def update(t,x):
-    dx = (mu - x)*theta*dt + np.sqrt(2*sigma*dt)*np.random.standard_normal()
+    dx = (mu - x)*theta*dt + sigma*np.sqrt(dt)*np.random.standard_normal()
     return t + dt, x + dx
 
 def run(niter: int, prefix: str, restart_file: str=None):
