@@ -1,3 +1,16 @@
+# '''
+# Created on 2022-09-20
+
+# @author: Alessandro Lovo
+# '''
+'''
+This modules logs a message to telegram
+
+When running from terminal:
+```
+python log2telegram.py "<message>" [<telegram chat ID> <telegram bot token>] [<telegram logging level>]
+```
+'''
 import sys
 import logging
 
@@ -15,11 +28,15 @@ if __name__ == '__main__':
     logger.debug(str(sys.argv))
     msg = sys.argv[1].strip('"').replace('\\n', '\n')
 
+    # deal with the telegram logger
     th = None
     if len(sys.argv) > 3:
         telegram_chat_ID = sys.argv[2]
         telegram_token = sys.argv[3]
         telegram_logging_level = int(sys.argv[4]) if len(sys.argv) > 4 else logging.INFO
+
+        if logger.level < telegram_logging_level:
+            logger.level = telegram_logging_level
 
         th = ut.new_telegram_handler(telegram_chat_ID, telegram_token, level=telegram_logging_level)
 

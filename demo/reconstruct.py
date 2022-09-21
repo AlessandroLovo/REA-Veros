@@ -1,3 +1,16 @@
+# '''
+# Created on 2022-09-19
+
+# @author: Alessandro Lovo
+# '''
+'''
+This module allows to reconstruct the trajectories from an already performed run.
+It recursively attaches the ancestors to the trajectories and computes the unbiasing factors
+
+When running from terminal:
+```
+python reconstruct.py <last iteration folder>
+'''
 import numpy as np
 import sys
 # import os
@@ -15,7 +28,32 @@ logger.level = logging.INFO
 
 
 
-def reconstruct(last_folder, write=False):
+def reconstruct(last_folder: str, write=False):
+    '''
+    Recontructs trajectories and compute their unbiasing weights
+
+    Parameters
+    ----------
+    last_folder : str
+        folder with the last step of the GKTL algorithm
+    write : bool, optional
+        Whether to write the result to a `root_folder`/recontructed.json, where `root_folder` is the parent of `last_folder`, by default False
+
+    Returns
+    -------
+    dict
+        {
+            'last_folder',
+            'cum_log_norm_factor': cumulative log of the normalization factor
+            'members' : list of ensemble members, each contains
+                'cum_score': cumulative score
+                'cum_log_escore': cumulative log of the exponential score, if the exponentiation function is a constant `k` in time it is just `k`*`cum_score`
+                'weight': the unbiasing weight for this ensemble member, namely its likelihood of actually happening in the non-biased dynamics.
+                'ancestry': list of parents starting from the furthest in time
+            'folders': list of the folders containg the parents, starting from the furthest in time, i.e. time goes forward in the list
+            'independent_parents': list of the number of independent reconstructed ancestors at that step of the algorithm
+        }
+    '''
     last_folder = last_folder.rstrip('.')
     root_folder = '.'
     if '/' in last_folder:
@@ -27,8 +65,10 @@ def reconstruct(last_folder, write=False):
 
     d = {'last_folder': last_folder, 'cum_log_norm_factor': 0.0, 'members': {}, 'folders': [], 'independent_parents': []}
 
+    # load the info file of the current directory
     info = ut.json2dict(f'{root_folder}/{last_folder}/info.json')
     
+    # collect all independent parents
     parents = set([])
     for i,e in enumerate(info['members'].values()):
         parent = e['parent']
@@ -39,6 +79,7 @@ def reconstruct(last_folder, write=False):
         prev_folder = info['previous_folder']
         logger.info(f'Opening {prev_folder}')
 
+        # info file of the folder of the parents
         info = ut.json2dict(f'{root_folder}/{prev_folder}/info.json')
         d['folders'].append(prev_folder)
         d['cum_log_norm_factor'] += np.log(info['norm_factor'])
@@ -50,7 +91,8 @@ def reconstruct(last_folder, write=False):
             e['cum_score'] += info['members'][parent]['score']
             e['cum_log_escore'] += np.log(info['members'][parent]['escore'])
 
-        if 'previous_folder' not in info:
+        # detect if we reached the last ancestor
+        if 'previous_folder' not in info or not info['previous_folder']:
             logger.info('Reached root')
             break
 
@@ -64,6 +106,7 @@ def reconstruct(last_folder, write=False):
         # move back one step by setting the new parents as the now grandparents
         parents = set(grand_parents.values())
 
+    # reverse the lists so time goes forward with them
     logger.info('Reversing time')
 
     d['folders'] = d['folders'][::-1]

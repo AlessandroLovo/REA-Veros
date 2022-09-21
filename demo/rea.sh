@@ -95,9 +95,13 @@ for n in $(seq 0 $NITER) ; do
         python compute_scores.py $k $prev_it_folder #$TARGS
 
         # set up info file for this iteration
+        # this is not necessary as it would be done anyways by the resampling script
         python setup_info.py $it_folder $nens
+
         echo "---Selecting---"
         python resample.py $it_folder $prev_it_folder #$TARGS
+
+        # TODO: add perturbation of initial conditions
 
         # NOTE: maybe the last iteration should not propagate
         echo "---Propagating---"
