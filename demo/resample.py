@@ -29,6 +29,44 @@ else:
     logger = logging.getLogger(__name__)
 logger.level = logging.INFO
 
+def draw(weights:np.ndarray, method='choice') -> np.ndarray:
+    weights = np.array(weights)
+    n = len(weights)
+    # check if weights sum to 1
+    s = np.sum(weights)
+    if np.abs(s - 1) > 1e-7:
+        logger.warning('Weights do not add up to 1: renormalizing them')
+        weights /= s
+    
+    if method == 'choice':
+        return np.random.choice(n, size=n, p=weights,replace=True,)
+    elif method == 'reduced_variance':
+        # number of tentative clones for each member
+        clones = (n*weights + np.random.uniform(0,1,size=n)).astype(int)
+        logger.debug(f'tentative {clones = }')
+        survivors = []
+        for i,c in enumerate(clones):
+            survivors += [i]*c
+        logger.debug(f'tentative {survivors = }')
+
+        n_extra_clones = len(survivors) - n
+
+        if n_extra_clones > 0:
+            # we kill the extra clones
+            logger.debug(f'killing the extra {n_extra_clones} clones')
+            survivors = np.random.permutation(survivors)[:n]
+        elif n_extra_clones < 0:
+            # we clone the missing ones from the survivors
+            logger.debug(f'Cloning {-n_extra_clones} extra trajectories')
+            survivors += list(np.random.choice(survivors, size=-n_extra_clones, replace=True))
+
+        if len(survivors) != n:
+            raise RuntimeError('Something went very wrong when drawing the survivors')
+        
+    else:
+        raise ValueError(f'Unrecognized {method = }')
+
+    return np.array(survivors)
 
 
 def resample(current_folder: str, previous_folder: str):
@@ -64,7 +102,7 @@ def resample(current_folder: str, previous_folder: str):
     weights = [e['weight'] for e in prev_d['members'].values()]
 
     # apply the selection
-    survivors = np.random.choice(ensemble_size,size=ensemble_size,p=weights)
+    survivors = draw(weights, method='reduced_variance')
 
     n_survivors = len(set(survivors))
 
