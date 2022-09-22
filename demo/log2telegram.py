@@ -28,7 +28,7 @@ if __name__ == '__main__':
     logger.debug(str(sys.argv))
     msg = sys.argv[1].strip('"').replace('\\n', '\n')
     try:
-        telegram_logging_level = sys.argv[4]
+        telegram_logging_level = int(sys.argv[4])
     except IndexError:
         telegram_logging_level = logging.INFO
 
