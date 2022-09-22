@@ -110,12 +110,13 @@ for n in $(seq 0 $NITER) ; do
 
         # TODO: add perturbation of initial conditions
 
-        # NOTE: maybe the last iteration should not propagate
-        echo "---Propagating---"
-        for ens in $(seq -f "%03g" 1 $nens) ; do
-            python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
-        done
-        wait
+        if [[ $n != $NITER ]] ; then
+            echo "---Propagating---"
+            for ens in $(seq -f "%03g" 1 $nens) ; do
+                python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+            done
+            wait
+        fi
     fi
 done
 
