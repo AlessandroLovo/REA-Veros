@@ -7,6 +7,7 @@ NITER=15 # number of iterations of the algorithm
 T=10 # timestep of the algorithm
 nens=20 # number of ensemble member
 k=2 # selection strenght parameter
+p="0"
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
@@ -33,6 +34,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -k|--k)
             k="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -p|--prefix)
+            p="$2"
             shift # past argument
             shift # past value
             ;;
@@ -67,7 +73,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to t
 
 ########## Actual script ##########
 
-folder="./__test__/k__$k--nens__$nens--T__$T"
+folder="./__test__/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
