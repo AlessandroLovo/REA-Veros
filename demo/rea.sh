@@ -91,8 +91,9 @@ for n in $(seq 0 $NITER) ; do
 
         # propagate all unsemble members
         for ens in $(seq -f "%03g" 1 $nens) ; do
-            python ou.py $T $it_folder/e$ens-
+            python ou.py $T $it_folder/e$ens- &
         done
+        wait
     else
         prev_it=$(printf "%04d" $(( n - 1 )) )
         prev_it_folder="$folder/i$prev_it"
@@ -112,8 +113,9 @@ for n in $(seq 0 $NITER) ; do
         # NOTE: maybe the last iteration should not propagate
         echo "---Propagating---"
         for ens in $(seq -f "%03g" 1 $nens) ; do
-            python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy
+            python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
         done
+        wait
     fi
 done
 
