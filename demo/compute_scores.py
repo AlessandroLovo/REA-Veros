@@ -97,22 +97,6 @@ if __name__ == '__main__':
     k = float(sys.argv[1])
     folder = sys.argv[2]
 
-    # this deals with telegram logging
-    th = None
-    if len(sys.argv) > 4:
-        telegram_chat_ID = sys.argv[3]
-        telegram_token = sys.argv[4]
-        telegram_logging_level = int(sys.argv[5]) if len(sys.argv) > 5 else logging.INFO
-
-        th = ut.new_telegram_handler(telegram_chat_ID, telegram_token, level=telegram_logging_level)
-
-        logger.handlers.append(th)
-        logger.debug('Added telegram logger')
-
-    try:
+    with ut.TelegramLogger(logger, *(sys.argv[3:])):
         compute_score(k, folder)
-    finally:
-        if th is not None:
-            logger.handlers.remove(th)
-            logger.info('Removed telegram logger')
     
