@@ -8,7 +8,7 @@ This modules logs a message to telegram
 
 When running from terminal:
 ```
-python log2telegram.py "<message>" [<telegram chat ID> <telegram bot token>] [<telegram logging level>]
+python log2telegram.py "<message>" <log level> [<telegram chat ID> <telegram bot token>] [<telegram logging level>]
 ```
 '''
 import sys
@@ -27,10 +27,7 @@ logger.level = logging.INFO
 if __name__ == '__main__':
     logger.debug(str(sys.argv))
     msg = sys.argv[1].strip('"').replace('\\n', '\n')
-    try:
-        telegram_logging_level = int(sys.argv[4])
-    except IndexError:
-        telegram_logging_level = logging.INFO
+    log_level = int(sys.argv[2])
 
-    with ut.TelegramLogger(logger, *(sys.argv[2:])):
-        logger.log(telegram_logging_level,msg)
+    with ut.TelegramLogger(logger, *(sys.argv[3:])):
+        logger.log(log_level,msg)
