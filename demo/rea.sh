@@ -77,11 +77,11 @@ folder="./__test__/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
-python log2telegram.py \""Starting $NITER iterations in folder $folder"\" $TARGS
+python log2telegram.py \""Starting $NITER iterations in folder $folder"\" 42 $TARGS
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
-    python log2telegram.py \""------------Iteration $_n-------------"\" $TARGS
+    python log2telegram.py \""------------Iteration $_n-------------"\" 31 $TARGS
     it_folder="$folder/i$_n"
     mkdir -p $it_folder # create the iteration folder
 
@@ -120,9 +120,9 @@ for n in $(seq 0 $NITER) ; do
     fi
 done
 
-python log2telegram.py \""------------Reconstructing-------------"\" $TARGS
+python log2telegram.py \""------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""\\n\\nTASK COMPLETED"\" $TARGS
+python log2telegram.py \""\\n\\nTASK COMPLETED"\" 42 $TARGS
 echo
 echo
