@@ -70,9 +70,9 @@ def reconstruct(last_folder: str, write=False):
     
     # collect all independent parents
     parents = set([])
-    for i,e in enumerate(info['members'].values()):
+    for ename,e in info['members'].items():
         parent = e['parent']
-        d['members'][f'r{i+1:03d}']= {'cum_score': 0.0, 'cum_log_escore': 0.0, 'ancestry': [parent]}
+        d['members'][ename.replace('e','r')]= {'cum_score': 0.0, 'cum_log_escore': 0.0, 'ancestry': [parent]}
         parents.add(parent)
     
     while True:
