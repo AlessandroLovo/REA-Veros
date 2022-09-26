@@ -31,7 +31,7 @@ def setup_info(nens: int):
         'members': {f'e{e+1:03d}': {} for e in range(`nens`)}
     }
     '''
-    return {'members': {f'e{e+1:03d}': {} for e in range(nens)}}
+    return {'members': {f'e{e+1:0{len(str(nens))}d}': {} for e in range(nens)}}
 
 
 if __name__ == '__main__':

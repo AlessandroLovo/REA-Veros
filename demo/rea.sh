@@ -90,7 +90,7 @@ for n in $(seq 0 $NITER) ; do
         python setup_info.py $it_folder $nens # setup info file for this iteration
 
         # propagate all unsemble members
-        for ens in $(seq -f "%03g" 1 $nens) ; do
+        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
             python ou.py $T $it_folder/e$ens- &
         done
         wait
@@ -112,7 +112,7 @@ for n in $(seq 0 $NITER) ; do
 
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
-            for ens in $(seq -f "%03g" 1 $nens) ; do
+            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                 python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
             done
             wait
