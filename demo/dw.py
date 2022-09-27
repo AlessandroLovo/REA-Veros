@@ -1,14 +1,14 @@
 # '''
-# Created on 2022-09-15
+# Created on 2022-09-27
 
 # @author: Alessandro Lovo
 # '''
 '''
-This module simulates a 1D Ornstein-Uhlenmbeck process.
+This module simulates a 1D Gaussian process in a double well potential.
 
 When running from terminal:
 ```
-python ou.py <n_iterations> <prefix> [<restart file>]
+python dw.py <n_iterations> <prefix> [<restart file>]
 ```
 `prefix` can contain '/', if the folder doesn't exist, it is created
 `restart file` contains the initial conditions for the trajectory. If not provided the trajectory starts at 0 at time 0.
@@ -20,15 +20,16 @@ import numpy as np
 import sys
 
 dt = 0.01
-mu = 0
-theta = 1
-sigma = 1
+sigma = 0.8
+h = 1.0
+w = 1.0
 
-# The potential is
-# U(x) = 0.5*theta*(x - mu)**2
+# the potential is
+# U(x) = h*(x**2 - w**2)**2/w**4
+# It is 0 in x = +/- w (the two wells) and U(0) = h (the local maximum of the potential) and the hight of the barrier to overcome
 
 def update(t,x):
-    dx = (mu - x)*theta*dt + sigma*np.sqrt(dt)*np.random.standard_normal()
+    dx = -4*x*(x**2 - w**2)/w**4*dt + sigma*np.sqrt(dt)*np.random.standard_normal()
     return t + dt, x + dx
 
 def run(niter: int, restart_file: str=None):
@@ -37,7 +38,7 @@ def run(niter: int, restart_file: str=None):
         if len(ic) != 2:
             raise ValueError('Incompatible restart file format')
     else:
-        ic = (0.,0.)
+        ic = (0.,-w)
 
     traj = []
     traj.append(ic)

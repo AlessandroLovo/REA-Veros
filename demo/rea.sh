@@ -7,7 +7,9 @@ NITER=15 # number of iterations of the algorithm
 T=10 # timestep of the algorithm
 nens=20 # number of ensemble member
 k=2 # selection strenght parameter
-p="0"
+p="0" # prefix
+
+dynanics_script='python ou.py'
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
@@ -21,6 +23,11 @@ while [[ $# -gt 0 ]]; do
             NITER="$2"
             shift # past argument
             shift # past value
+            ;;
+        -d|--dynamics)
+            dynanics_script="$2"
+            shift
+            shift
             ;;
         -t|--timestep)
             T="$2"
@@ -91,7 +98,7 @@ for n in $(seq 0 $NITER) ; do
 
         # propagate all unsemble members
         for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-            python ou.py $T $it_folder/e$ens- &
+            $dynanics_script $T $it_folder/e$ens- &
         done
         wait
     else
@@ -113,7 +120,7 @@ for n in $(seq 0 $NITER) ; do
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
             for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                python ou.py $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                $dynanics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
             done
             wait
         fi
