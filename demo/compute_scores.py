@@ -52,7 +52,7 @@ def eval_cum_score(traj, initial=False):
     return traj[-1,1]
     
 
-def compute_score(k: float=0.0, folder: str=None, from_cum=False):
+def compute_score(k: float=0.0, folder: str=None, from_cum=True):
     '''
     Computes the scores and weights for each ensemble member in a folder
 
