@@ -71,8 +71,8 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=False):
     # compute the scores
     logger.info('Computing scores for each ensemble member')
     escores = []
-    for e in d['members']:
-        traj = np.load(f'{folder}/{e}-traj.npy')
+    for ename, e in d['members'].items():
+        traj = np.load(f'{folder}/{ename}-traj.npy')
 
         # This implementation is robust against different values of k along the realization of the algorithm
         if from_cum: # compute first the cumulative score. This is the way to go if the score involves a time average
@@ -94,10 +94,10 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=False):
             cum_log_escore_f = e['cum_log_escore_i'] + k*score # that is the same as + np.log(escore)
         
         escores.append(escore)
-        d['members'][e]['score'] = score
-        d['members'][e]['escore'] = escore
-        d['members'][e]['cum_score_f'] = cum_score_f
-        d['members'][e]['cum_log_escore_f'] = cum_log_escore_f
+        e['score'] = score
+        e['escore'] = escore
+        e['cum_score_f'] = cum_score_f
+        e['cum_log_escore_f'] = cum_log_escore_f
 
     # normalize the scores
     logger.info('Normalizing scores')
