@@ -116,6 +116,8 @@ def resample(current_folder: str, previous_folder: str):
     for i,e in enumerate(cur_d['members']):
         parent = list(prev_d['members'])[survivors[i]]
         cur_d['members'][e]['parent'] = parent
+        cur_d['members'][e]['cum_score_i'] = prev_d['members'][parent]['cum_score_f']
+        cur_d['members'][e]['cum_log_escore_i'] = prev_d['members'][parent]['cum_log_escore_f']
 
         logger.debug(f'Creating init file for {current_folder}/{e}')
         os.system(f"cp {previous_folder}/{parent}-restart.npy {current_folder}/{e}-init.npy")

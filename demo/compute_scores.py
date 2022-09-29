@@ -45,10 +45,14 @@ def eval_score(traj):
         x[-1] - x[0]
     '''
     return traj[-1,1] - traj[0,1]
+
+def eval_cum_score(traj, initial=False):
+    if initial:
+        return traj[0,1]
+    return traj[-1,1]
     
 
-
-def compute_score(k: float=0.0, folder: str=None):
+def compute_score(k: float=0.0, folder: str=None, from_cum=False):
     '''
     Computes the scores and weights for each ensemble member in a folder
 
@@ -70,11 +74,30 @@ def compute_score(k: float=0.0, folder: str=None):
     for e in d['members']:
         traj = np.load(f'{folder}/{e}-traj.npy')
 
-        score = eval_score(traj)
-        escore = np.exp(k*score) # the exponentiated score
+        # This implementation is robust against different values of k along the realization of the algorithm
+        if from_cum: # compute first the cumulative score. This is the way to go if the score involves a time average
+            if 'cum_score_i' not in e:
+                e['cum_score_i'] = eval_cum_score(traj, initial=True)
+                e['cum_log_escore_i'] = k*e['cum_score_i']
+            cum_score_f = eval_cum_score(traj)
+            cum_log_escore_f = k*cum_score_f
+            score = cum_score_f - e['cum_score_i']
+            escore = np.exp(cum_log_escore_f - e['cum_log_escore_i'])
+
+        else:
+            if 'cum_score_i' not in e: # TODO: maybe this is not the best approach
+                e['cum_score_i'] = 0
+                e['cum_log_escore_i'] = 0
+            score = eval_score(traj)
+            escore = np.exp(k*score) # the exponentiated score
+            cum_score_f = e['cum_score_i'] + score
+            cum_log_escore_f = e['cum_log_escore_i'] + k*score # that is the same as + np.log(escore)
+        
         escores.append(escore)
         d['members'][e]['score'] = score
         d['members'][e]['escore'] = escore
+        d['members'][e]['cum_score_f'] = cum_score_f
+        d['members'][e]['cum_log_escore_f'] = cum_log_escore_f
 
     # normalize the scores
     logger.info('Normalizing scores')

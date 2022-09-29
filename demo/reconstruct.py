@@ -64,6 +64,7 @@ def reconstruct(last_folder: str, write=False):
     # That's why we don't include it in the list and the cumulative sums start from 0
 
     d = {'last_folder': last_folder, 'cum_log_norm_factor': 0.0, 'members': {}, 'folders': [], 'independent_parents': []}
+    # TODO: add a check for the cumulative scores and escores
 
     # load the info file of the current directory
     info = ut.json2dict(f'{root_folder}/{last_folder}/info.json')
