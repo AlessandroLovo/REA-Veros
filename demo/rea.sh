@@ -84,7 +84,7 @@ folder="./__test__/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
-python log2telegram.py \""Starting $NITER iterations in folder $folder"\" 45 $TARGS
+python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $folder"\" 45 $TARGS
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
@@ -130,6 +130,6 @@ done
 python log2telegram.py \""------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""\\n\\nTASK COMPLETED"\" 45 $TARGS
+python log2telegram.py \""$HOSTNAME:\\n\\nTASK COMPLETED"\" 45 $TARGS
 echo
 echo
