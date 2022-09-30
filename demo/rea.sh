@@ -9,7 +9,15 @@ nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 p="0" # prefix
 
-dynanics_script='python ou.py'
+root_folder='./__test__'
+
+max_simultaneous_jobs=0
+cluster=false
+partition="aegir"
+
+_sbatch_script="sbatch --wait"
+
+dynamics_script='python ou.py'
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
@@ -25,7 +33,7 @@ while [[ $# -gt 0 ]]; do
             shift # past value
             ;;
         -d|--dynamics)
-            dynanics_script="$2"
+            dynamics_script="$2"
             shift
             shift
             ;;
@@ -46,6 +54,20 @@ while [[ $# -gt 0 ]]; do
             ;;
         -p|--prefix)
             p="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -r|--root|--root-folder)
+            root_folder="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        --cluster)
+            cluster=true
+            shift
+            ;;
+        -P|--partition)
+            partition="$2"
             shift # past argument
             shift # past value
             ;;
@@ -77,10 +99,13 @@ done
 
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to the first positional argument and so on
 
-
 ########## Actual script ##########
 
-folder="./__test__/$p--k__$k--nens__$nens--T__$T"
+if [[ ! -z ${partition} ]] ; then
+    _sbatch_script="$_sbatch_script --partition=$partition"
+fi
+
+folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
@@ -96,11 +121,51 @@ for n in $(seq 0 $NITER) ; do
         echo "---Initializing ensemble---"
         python setup_info.py $it_folder $nens # setup info file for this iteration
 
-        # propagate all unsemble members
-        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-            $dynanics_script $T $it_folder/e$ens- &
-        done
-        wait
+        if $cluster ; then
+            sbatch_script=$_sbatch_script
+            if [[ $max_simultaneous_jobs == 0 ]] ; then
+                msj=$nens
+            else
+                sbatch_script="$sbatch_script --dependency=singleton"
+                msj=$max_simultaneous_jobs
+            fi
+
+            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                    jobID=$(($ens % $msj))
+                    $sbatch_script --jobName=$jobID $dynamics_script $T $it_folder/e$ens- &
+            done
+            wait
+
+        else
+            if [[ $max_simultaneous_jobs == 0 ]] ; then
+                # propagate all ensemble members at once
+                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                    $dynamics_script $T $it_folder/e$ens- &
+                done
+                wait
+            else
+                # propagate ensemble members in batches
+                last_e=0
+                batch=1
+                keep_going=true
+                while $keep_going ; do
+                    if [[ $(($nens - $max_simultaneous_jobs)) -gt $last_e ]] ; then
+                        end_e=$(($last_e + $max_simultaneous_jobs))
+                    else
+                        end_e=$nens
+                        keep_going=false
+                    fi
+
+                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                        $dynamics_script $T $it_folder/e$ens- &
+                    done
+                    wait
+                    batch=$(($batch + 1))
+                    last_e=$end_e
+                done
+            fi
+        fi
     else
         prev_it=$(printf "%04d" $(( n - 1 )) )
         prev_it_folder="$folder/i$prev_it"
@@ -119,8 +184,54 @@ for n in $(seq 0 $NITER) ; do
 
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
+
+            if $cluster ; then
+                sbatch_script=$_sbatch_script
+                if [[ $max_simultaneous_jobs == 0 ]] ; then
+                    msj=$nens
+                else
+                    sbatch_script="$sbatch_script --dependency=singleton"
+                    msj=$max_simultaneous_jobs
+                fi
+
+                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                        jobID=$(($ens % $msj))
+                        $sbatch_script --jobName=$jobID $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                done
+                wait
+
+            else
+                if [[ $max_simultaneous_jobs == 0 ]] ; then
+                    # propagate all ensemble members at once
+                    for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                        $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                    done
+                    wait
+                else
+                    # propagate ensemble members in batches
+                    last_e=0
+                    batch=1
+                    keep_going=true
+                    while $keep_going ; do
+                        if [[ $(($nens - $max_simultaneous_jobs)) -gt $last_e ]] ; then
+                            end_e=$(($last_e + $max_simultaneous_jobs))
+                        else
+                            end_e=$nens
+                            keep_going=false
+                        fi
+
+                        python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                        for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                            $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                        done
+                        wait
+                        batch=$(($batch + 1))
+                        last_e=$end_e
+                    done
+                fi
+            fi
             for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                $dynanics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
             done
             wait
         fi
