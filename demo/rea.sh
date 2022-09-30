@@ -62,6 +62,11 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
+        -j|--jobs)
+            max_simultaneous_jobs="$2"
+            shift # past argument
+            shift # past value
+            ;;
         --cluster)
             cluster=true
             shift
