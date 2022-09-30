@@ -30,7 +30,7 @@ logger.level = logging.INFO
 
 ### The function that computes the score starting from a segment of trajectory ###
 
-def eval_score(traj):
+def eval_score(traj) -> float:
     '''
     Just takes the difference between the last and first x coordinate of the trajectory
 
@@ -46,10 +46,11 @@ def eval_score(traj):
     '''
     return traj[-1,1] - traj[0,1]
 
-def eval_cum_score(traj, initial=False):
+window_width = 5
+def eval_cum_score(traj, initial=False) -> float:
     if initial:
-        return traj[0,1]
-    return traj[-1,1]
+        return np.mean(traj[:window_width,1])
+    return np.mean(traj[-window_width:,1])
     
 
 def compute_score(k: float=0.0, folder: str=None, from_cum=True):

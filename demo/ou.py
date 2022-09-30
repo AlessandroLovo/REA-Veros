@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import sys
 
-dt = 0.01
+dt = 0.002
 mu = 0
 theta = 1
 sigma = 1

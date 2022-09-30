@@ -4,7 +4,7 @@
 
 ## default values for parameters
 NITER=15 # number of iterations of the algorithm
-T=10 # timestep of the algorithm
+T=50 # timestep of the algorithm
 nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 p="0" # prefix
@@ -14,7 +14,7 @@ dynanics_script='python ou.py'
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
 CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
-TLL=30 # telegram logging level
+TLL=40 # telegram logging level
 
 
 while [[ $# -gt 0 ]]; do
@@ -84,7 +84,7 @@ folder="./__test__/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
-python log2telegram.py \""Starting $NITER iterations in folder $folder"\" 42 $TARGS
+python log2telegram.py \""Starting $NITER iterations in folder $folder"\" 45 $TARGS
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
@@ -130,6 +130,6 @@ done
 python log2telegram.py \""------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""\\n\\nTASK COMPLETED"\" 42 $TARGS
+python log2telegram.py \""\\n\\nTASK COMPLETED"\" 45 $TARGS
 echo
 echo
