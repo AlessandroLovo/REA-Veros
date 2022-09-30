@@ -1,3 +1,8 @@
+#SBATCH -A ocean
+#SBATCH --time=00:00:10
+#SBATCH --constraint=v1
+#SBATCH --nodes=1
+
 # '''
 # Created on 2022-09-15
 
