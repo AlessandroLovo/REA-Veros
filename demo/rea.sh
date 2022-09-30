@@ -136,8 +136,8 @@ for n in $(seq 0 $NITER) ; do
             fi
 
             for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                    jobID=$(($ens % $msj))
-                    $sbatch_script --jobName=$jobID $dynamics_script $T $it_folder/e$ens- &
+                    jobID=$($ens % $msj)
+                    $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- &
             done
             wait
 
@@ -200,8 +200,8 @@ for n in $(seq 0 $NITER) ; do
                 fi
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$(($ens % $msj))
-                        $sbatch_script --jobName=$jobID $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                        jobID=$($ens % $msj)
+                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
                 done
                 wait
 
