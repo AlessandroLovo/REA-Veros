@@ -9,7 +9,7 @@ nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 p="0" # prefix
 
-root_folder='./__test__'
+root_folder='../demo/__test__'
 
 max_simultaneous_jobs=0
 cluster=false
@@ -17,7 +17,7 @@ partition="aegir"
 
 _sbatch_script="sbatch --wait"
 
-dynamics_script='python ou.py'
+dynamics_script='python ../demo/ou.py'
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
