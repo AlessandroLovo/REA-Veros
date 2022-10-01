@@ -14,6 +14,9 @@ root_folder='../demo/__test__'
 max_simultaneous_jobs=0
 cluster=false
 partition="aegir"
+python_modules='python_modules.sh' # script that loads the modules for python
+dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
+cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
 
 _sbatch_script="sbatch --wait"
 
@@ -34,6 +37,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -d|--dynamics)
             dynamics_script="$2"
+            shift
+            shift
+            ;;
+        --cloning-script)
+            cloning_script="$2"
             shift
             shift
             ;;
@@ -76,6 +84,16 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
+        --python-modules)
+            python_modules="$2"
+            shift
+            shift
+            ;;
+        --dynamics-modules)
+            dynamics_modules="$2"
+            shift
+            shift
+            ;;
         -b|--bot-token)
             TBT="$2"
             shift # past argument
@@ -114,6 +132,15 @@ folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
 
 TARGS="$CHAT_ID $TBT $TLL"
 
+# TODO: log all parameters to a file
+
+# load modules for python
+if $cluster ; then
+    module purge
+    . $python_modules
+    module list
+fi
+
 python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $folder"\" 45 $TARGS
 
 for n in $(seq 0 $NITER) ; do
@@ -135,11 +162,19 @@ for n in $(seq 0 $NITER) ; do
                 msj=$max_simultaneous_jobs
             fi
 
+            # load modules for running the dynamics
+            . $dynamics_modules
+            module list
+
             for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                     jobID=$($ens % $msj)
                     $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- &
             done
             wait
+
+            # restore modules for python
+            module purge
+            . $python_modules
 
         else
             if [[ $max_simultaneous_jobs == 0 ]] ; then
@@ -171,21 +206,21 @@ for n in $(seq 0 $NITER) ; do
                 done
             fi
         fi
-    else
+    else # normal iteration
         prev_it=$(printf "%04d" $(( n - 1 )) )
         prev_it_folder="$folder/i$prev_it"
 
+        # TODO: enable possibility to run these script on the cluster as well
         echo "---Computing scores---"
         python compute_scores.py $k $prev_it_folder #$TARGS
 
         # set up info file for this iteration
         # this is not necessary as it would be done anyways by the resampling script
-        python setup_info.py $it_folder $nens
+        # python setup_info.py $it_folder $nens
 
         echo "---Selecting---"
-        python resample.py $it_folder $prev_it_folder #$TARGS
-
-        # TODO: add perturbation of initial conditions
+        python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
+        # perturbation of initial conditions is done in the cloning script
 
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
@@ -199,11 +234,19 @@ for n in $(seq 0 $NITER) ; do
                     msj=$max_simultaneous_jobs
                 fi
 
+                # load modules for running the dynamics
+                . $dynamics_modules
+                module list
+
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$($ens % $msj)
                         $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
                 done
                 wait
+
+                # restore modules for python
+                module purge
+                . $python_modules
 
             else
                 if [[ $max_simultaneous_jobs == 0 ]] ; then
@@ -235,10 +278,6 @@ for n in $(seq 0 $NITER) ; do
                     done
                 fi
             fi
-            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
-            done
-            wait
         fi
     fi
 done

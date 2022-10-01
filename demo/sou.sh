@@ -5,4 +5,4 @@
 #SBATCH --constraint=v1
 #SBATCH --nodes=1
 
-python ou.py $1 $2 $3
+python ou.py $@

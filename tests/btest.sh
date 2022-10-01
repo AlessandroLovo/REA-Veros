@@ -22,3 +22,5 @@ last_e=0
 if [[ $last_e ]] ; then
 echo ha!
 fi
+
+echo $@

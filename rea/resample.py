@@ -69,7 +69,7 @@ def draw(weights:np.ndarray, method='choice') -> np.ndarray:
     return np.array(survivors)
 
 
-def resample(current_folder: str, previous_folder: str):
+def resample(current_folder: str, previous_folder: str, cloning_script: str='../demo/clone.sh'):
     '''
     Resamples a new set of trajectories by copying the proper restart files. They are called `e`-init.npy
 
@@ -120,7 +120,7 @@ def resample(current_folder: str, previous_folder: str):
         cur_d['members'][e]['cum_log_escore_i'] = prev_d['members'][parent]['cum_log_escore_f']
 
         logger.debug(f'Creating init file for {current_folder}/{e}')
-        os.system(f"cp {previous_folder}/{parent}-restart.npy {current_folder}/{e}-init.npy")
+        os.system(f". {cloning_script} {previous_folder}/{parent} {current_folder}/{e}")
 
     # write the info dict to file
     ut.dict2json(cur_d, f'{current_folder}/info.json')
@@ -130,6 +130,7 @@ def resample(current_folder: str, previous_folder: str):
 if __name__ == '__main__':
     current_folder = sys.argv[1]
     previous_folder = sys.argv[2]
+    cloning_script = sys.argv[3]
 
-    with ut.TelegramLogger(logger, *(sys.argv[2:])):
-        resample(current_folder, previous_folder)
+    with ut.TelegramLogger(logger, *(sys.argv[4:])):
+        resample(current_folder, previous_folder, cloning_script)
