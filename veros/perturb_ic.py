@@ -1,4 +1,4 @@
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 import h5py
@@ -9,8 +9,6 @@ def MAIN():
         a = sys.argv[1]
         perturb_ic(a)
         #test_pert()
-
-        pl.show()
 
 def test_pert():
         f = h5py.File('s720ur2bP0.0100.restart.h5', 'r+')
@@ -25,17 +23,19 @@ def test_pert():
         salt = snap['salt'][:]
         salt0 = snap0['salt'][:]
 
-        fig=pl.figure()
-        pl.pcolormesh(temp[:,:,-1,0]-temp0[:,:,-1,0])
-        pl.colorbar()
+        fig=plt.figure()
+        plt.pcolormesh(temp[:,:,-1,0]-temp0[:,:,-1,0])
+        plt.colorbar()
         
-        fig=pl.figure()
-        pl.pcolormesh(salt[:,:,-1,0]-salt0[:,:,-1,0])
-        pl.colorbar()
+        fig=plt.figure()
+        plt.pcolormesh(salt[:,:,-1,0]-salt0[:,:,-1,0])
+        plt.colorbar()
         
-        fig=pl.figure()
-        pl.pcolormesh(salt[:,:,-20,0]-salt0[:,:,-20,0])
-        pl.colorbar()
+        fig=plt.figure()
+        plt.pcolormesh(salt[:,:,-20,0]-salt0[:,:,-20,0])
+        plt.colorbar()
+
+        plt.show()
 
 
 def perturb_ic(a):
