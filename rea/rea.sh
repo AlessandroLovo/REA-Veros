@@ -11,15 +11,15 @@ p="0" # prefix
 
 root_folder='../demo/__test__'
 
-max_simultaneous_jobs=0
+msj=0 # max simultaneous jobs
 cluster=false
 partition="aegir"
+account="ocean"
 python_modules='python_modules.sh' # script that loads the modules for python
 dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
+sbatch_script="sbatch --wait --dependency=singleton"
+
 cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
-
-_sbatch_script="sbatch --wait"
-
 dynamics_script='python ../demo/ou.py'
 
 ## telegram logging
@@ -71,7 +71,7 @@ while [[ $# -gt 0 ]]; do
             shift # past value
             ;;
         -j|--jobs)
-            max_simultaneous_jobs="$2"
+            msj="$2"
             shift # past argument
             shift # past value
             ;;
@@ -81,6 +81,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -P|--partition)
             partition="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -A|--account)
+            account="$2"
             shift # past argument
             shift # past value
             ;;
@@ -124,15 +129,48 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to t
 
 ########## Actual script ##########
 
+### preliminary operations ###
+
+if [[ $msj == 0 ]] ; then
+    msj=$nens
+fi
+
 if [[ ! -z ${partition} ]] ; then
-    _sbatch_script="$_sbatch_script --partition=$partition"
+    sbatch_script="$sbatch_script --partition=$partition"
+fi
+
+if [[ ! -z ${account} ]] ; then
+    sbatch_script="$sbatch_script --account=$account"
 fi
 
 folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
 
-TARGS="$CHAT_ID $TBT $TLL"
+TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
-# TODO: log all parameters to a file
+# log all parameters to a file
+arg_file="$folder/parameters.txt"
+echo "# parameters of the algorithm ">> $arg_file
+echo "NITER : $NITER # number of iterations" >> $arg_file
+echo "T : $T # resampling timestep" >> $arg_file
+echo "nens : $nens # number of ensemble members" >> $arg_file
+echo "k : $k # selection strenght" >> $arg_file
+echo >> $arg_file
+echo "# Dynamics ">> $arg_file
+echo "dynamics_script : $dynamics_script # script that runs the dynamics" >> $arg_file
+echo "cloning_script : $cloning_script # script that clones trajectories, possibly perturbing initial conditions">> $arg_file
+echo >> $arg_file
+echo "# Execution parameters that do not affect the result" >> $arg_file
+echo "prefix : $p # prefix for this folder name" >> $arg_file
+echo "jobs : $msj # maximum number of simultaneous jobs" >> $arg_file
+echo >> $arg_file
+echo "cluster : $cluster # whether the algorithm is run on a cluster">> $arg_file
+if $cluster ; then
+    echo "    partition : $partition" >> $arg_file
+    echo "    account : $account" >> $arg_file
+    echo "    python modules loaded from : $python_modules" >> $arg_file
+    echo "    dynamics modules loaded from : $dynamics_modules" >> $arg_file
+fi
+echo >> $arg_file
 
 # load modules for python
 if $cluster ; then
@@ -143,25 +181,19 @@ fi
 
 python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $folder"\" 45 $TARGS
 
+### start of the algorithm ###
+
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $n)
     python log2telegram.py \""------------Iteration $_n-------------"\" 31 $TARGS
     it_folder="$folder/i$_n"
     mkdir -p $it_folder # create the iteration folder
 
-    if [[ $n == 0 ]] ; then # initialization
+    if [[ $n == 0 ]] ; then # initialization: there is no restart file for each ensemble member
         echo "---Initializing ensemble---"
         python setup_info.py $it_folder $nens # setup info file for this iteration
 
         if $cluster ; then
-            sbatch_script=$_sbatch_script
-            if [[ $max_simultaneous_jobs == 0 ]] ; then
-                msj=$nens
-            else
-                sbatch_script="$sbatch_script --dependency=singleton"
-                msj=$max_simultaneous_jobs
-            fi
-
             # load modules for running the dynamics
             . $dynamics_modules
             module list
@@ -177,63 +209,55 @@ for n in $(seq 0 $NITER) ; do
             . $python_modules
 
         else
-            if [[ $max_simultaneous_jobs == 0 ]] ; then
-                # propagate all ensemble members at once
-                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+            # propagate ensemble members in batches (if msj==nens there will be only one batch)
+            last_e=0
+            batch=1
+            keep_going=true
+            while $keep_going ; do
+                if [[ $(($nens - $msj)) -gt $last_e ]] ; then
+                    end_e=$(($last_e + $msj))
+                else
+                    end_e=$nens
+                    keep_going=false
+                fi
+
+                python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                     $dynamics_script $T $it_folder/e$ens- &
                 done
                 wait
-            else
-                # propagate ensemble members in batches
-                last_e=0
-                batch=1
-                keep_going=true
-                while $keep_going ; do
-                    if [[ $(($nens - $max_simultaneous_jobs)) -gt $last_e ]] ; then
-                        end_e=$(($last_e + $max_simultaneous_jobs))
-                    else
-                        end_e=$nens
-                        keep_going=false
-                    fi
-
-                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens- &
-                    done
-                    wait
-                    batch=$(($batch + 1))
-                    last_e=$end_e
-                done
-            fi
+                batch=$(($batch + 1))
+                last_e=$end_e
+            done
         fi
-    else # normal iteration
+    
+    else # normal iteration : we propagate each ensemble member from their restart file
         prev_it=$(printf "%04d" $(( n - 1 )) )
         prev_it_folder="$folder/i$prev_it"
 
-        # TODO: enable possibility to run these script on the cluster as well
         echo "---Computing scores---"
-        python compute_scores.py $k $prev_it_folder #$TARGS
+        if $cluster ; then
+            $sbatch_script --job-name=rea_cs scompute_scores.sh $k $prev_it_folder
+        else
+            python compute_scores.py $k $prev_it_folder #$TARGS
+        fi
 
-        # set up info file for this iteration
-        # this is not necessary as it would be done anyways by the resampling script
+        ## set up info file for this iteration
+        ## this is not necessary as it would be done anyways by the resampling script
         # python setup_info.py $it_folder $nens
 
         echo "---Selecting---"
-        python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
+        if $cluster ; then
+            $sbatch_script --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
+        else
+            python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
+        fi
         # perturbation of initial conditions is done in the cloning script
 
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
 
             if $cluster ; then
-                sbatch_script=$_sbatch_script
-                if [[ $max_simultaneous_jobs == 0 ]] ; then
-                    msj=$nens
-                else
-                    sbatch_script="$sbatch_script --dependency=singleton"
-                    msj=$max_simultaneous_jobs
-                fi
-
                 # load modules for running the dynamics
                 . $dynamics_modules
                 module list
@@ -249,34 +273,26 @@ for n in $(seq 0 $NITER) ; do
                 . $python_modules
 
             else
-                if [[ $max_simultaneous_jobs == 0 ]] ; then
-                    # propagate all ensemble members at once
-                    for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                # propagate ensemble members in batches (if msj==nens there will be only one batch)
+                last_e=0
+                batch=1
+                keep_going=true
+                while $keep_going ; do
+                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
+                        end_e=$(($last_e + $msj))
+                    else
+                        end_e=$nens
+                        keep_going=false
+                    fi
+
+                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                         $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
                     done
                     wait
-                else
-                    # propagate ensemble members in batches
-                    last_e=0
-                    batch=1
-                    keep_going=true
-                    while $keep_going ; do
-                        if [[ $(($nens - $max_simultaneous_jobs)) -gt $last_e ]] ; then
-                            end_e=$(($last_e + $max_simultaneous_jobs))
-                        else
-                            end_e=$nens
-                            keep_going=false
-                        fi
-
-                        python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                        for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                            $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
-                        done
-                        wait
-                        batch=$(($batch + 1))
-                        last_e=$end_e
-                    done
-                fi
+                    batch=$(($batch + 1))
+                    last_e=$end_e
+                done
             fi
         fi
     fi
