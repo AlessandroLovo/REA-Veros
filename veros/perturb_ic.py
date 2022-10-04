@@ -6,8 +6,8 @@ import matplotlib as mpl
 import sys
 
 def MAIN():
-        a = sys.argv[1]
-        perturb_ic(a)
+        filename = sys.argv[1]
+        perturb_ic(filename)
         #test_pert()
 
 def test_pert():
@@ -38,9 +38,9 @@ def test_pert():
         plt.show()
 
 
-def perturb_ic(a):
+def perturb_ic(filename):
 
-        f = h5py.File('s720ur2b.0%s.restartP.h5'%a, 'r+')
+        f = h5py.File(filename, 'r+')
 
         #print(f.keys())
         snap = f['snapshot']
