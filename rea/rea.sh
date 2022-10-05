@@ -9,18 +9,29 @@ nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 p="0" # prefix
 
-root_folder='../demo/__test__'
+# useful default arguments
+mode='demo'
+if [[ "$mode" == "veros" ]] ; then
+    root_folder='../veros/__test__' # TODO: update it
+    dynamics_modules='../veros/veros_modules.sh' # script that loads the modules for the dynamics
+    cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
+    dynamics_script='../veros/veros_batch_restart.sh'
+    make_traj_script='../veros/make_traj.py'
+    T=100
+else
+    root_folder='../demo/__test__'
+    dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
+    cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
+    dynamics_script='python ../demo/ou.py'
+    make_traj_script='None'
+fi
 
 msj=0 # max simultaneous jobs
 cluster=false
 partition="aegir"
 account="ocean"
 python_modules='python_modules.sh' # script that loads the modules for python
-dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
 sbatch_script="sbatch --wait --dependency=singleton"
-
-cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
-dynamics_script='python ../demo/ou.py'
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
@@ -42,6 +53,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --cloning-script)
             cloning_script="$2"
+            shift
+            shift
+            ;;
+        --make-traj-script)
+            make_traj_script="$2"
             shift
             shift
             ;;
@@ -158,6 +174,7 @@ echo >> $arg_file
 echo "# Dynamics ">> $arg_file
 echo "dynamics_script : $dynamics_script # script that runs the dynamics" >> $arg_file
 echo "cloning_script : $cloning_script # script that clones trajectories, possibly perturbing initial conditions">> $arg_file
+echo "make_traj_script : $make_traj_script # script to postprocess the output of the dynamics and compute the trajectory of the observable needed for the score" >> $arg_file
 echo >> $arg_file
 echo "# Execution parameters that do not affect the result" >> $arg_file
 echo "prefix : $p # prefix for this folder name" >> $arg_file
@@ -239,7 +256,7 @@ for n in $(seq 0 $NITER) ; do
         if $cluster ; then
             $sbatch_script --job-name=rea_cs scompute_scores.sh $k $prev_it_folder
         else
-            python compute_scores.py $k $prev_it_folder #$TARGS
+            python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
 
         ## set up info file for this iteration

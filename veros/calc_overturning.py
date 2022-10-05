@@ -4,12 +4,13 @@ import xarray as xr
 # import matplotlib.pyplot as plt
 import sys
 
-def MAIN():
+# TODO: fix filenames format
+
+def compute_overturning(name:str):
         radius = 6370e3  # Earth radius in m
         degtom = radius / 180. * np.pi
         N = 1; M = 20
         #name = 'REA109i0'
-        name = sys.argv[1]
         print(name)
 
 
@@ -122,6 +123,8 @@ def MAIN():
         ds.to_netcdf('overturning_%s.nc'%name)
         ds2.to_netcdf('salt_temp_%s.nc'%name)
 
+        return ds
+
 def compute_eul_moc(v, cosu, dxt, dzt):
 
         vsf_depth = np.zeros((v.shape[0], v.shape[1], v.shape[2]))
@@ -133,5 +136,6 @@ def compute_eul_moc(v, cosu, dxt, dzt):
 
 
 if __name__ == '__main__':
-        MAIN()
+        name = sys.argv[1]
+        compute_overturning(name)
 

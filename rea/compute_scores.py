@@ -16,6 +16,7 @@ python compute_scores.py <k> <folder> [<telegram chat ID> <telegram bot token>] 
 import numpy as np
 import logging
 import sys
+import os
 
 sys.path.append('../')
 import general_purpose.utilities as ut
@@ -53,7 +54,7 @@ def eval_cum_score(traj, initial=False) -> float:
     return np.mean(traj[-window_width:,1])
     
 
-def compute_score(k: float=0.0, folder: str=None, from_cum=True):
+def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_script=None):
     '''
     Computes the scores and weights for each ensemble member in a folder
 
@@ -73,7 +74,13 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True):
     logger.info('Computing scores for each ensemble member')
     escores = []
     for ename, e in d['members'].items():
-        traj = np.load(f'{folder}/{ename}-traj.npy')
+        traj = f'{folder}/{ename}-traj.npy'
+        if not os.path.exists(traj):
+            if make_traj_script:
+                os.system(f'python {make_traj_script} {folder}/{ename}')
+            else:
+                raise RuntimeError('Trajectory not found and script for creating it not provided')
+        traj = np.load(traj)
 
         # This implementation is robust against different values of k along the realization of the algorithm
         if from_cum: # compute first the cumulative score. This is the way to go if the score involves a time average
@@ -120,7 +127,10 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True):
 if __name__ == '__main__':
     k = float(sys.argv[1])
     folder = sys.argv[2]
+    make_traj_script = sys.argv[3]
+    if make_traj_script.lower() == 'none':
+        make_traj_script = None
 
-    with ut.TelegramLogger(logger, *(sys.argv[3:])):
-        compute_score(k, folder)
+    with ut.TelegramLogger(logger, *(sys.argv[4:])):
+        compute_score(k, folder, make_traj_script=make_traj_script)
     

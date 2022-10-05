@@ -80,6 +80,11 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
     previous_folder : str
         folder for the previous iteration
     '''
+    if cloning_script.endswith('.py'): # python script
+        cloning_script = f'python {cloning_script}'
+    else: # shell script
+        cloning_script = f'. {cloning_script}'
+
     current_folder = current_folder.rstrip('/')
     previous_folder = previous_folder.rstrip('/')
 
@@ -120,7 +125,7 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
         cur_d['members'][e]['cum_log_escore_i'] = prev_d['members'][parent]['cum_log_escore_f']
 
         logger.debug(f'Creating init file for {current_folder}/{e}')
-        os.system(f". {cloning_script} {previous_folder}/{parent} {current_folder}/{e}")
+        os.system(f"{cloning_script} {previous_folder}/{parent} {current_folder}/{e}")
 
     # write the info dict to file
     ut.dict2json(cur_d, f'{current_folder}/info.json')

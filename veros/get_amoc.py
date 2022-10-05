@@ -16,11 +16,13 @@ def amoc_timeseries(ot):
                 amoc.append(observable(ot,i))
         return t_amoc, amoc
 
-N = 50
-	
-amoc = []
-t = []
-for i in range(N):
-	x = xr.open_dataarray("overturning_%s.nc"%str(100+i))
-	t_amoc0, amoc0 = amoc_timeseries(x)
-	amoc.append(amoc0); t.append(t_amoc0)
+# deprecated for filename conflicts
+def get_all(N=50):
+        amoc = []
+        t = []
+        for i in range(N):
+                x = xr.open_dataarray("overturning_%s.nc"%str(100+i))
+                t_amoc0, amoc0 = amoc_timeseries(x)
+                amoc.append(amoc0); t.append(t_amoc0)
+
+        return t, amoc
