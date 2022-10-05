@@ -61,8 +61,11 @@ def MAIN():
                 seaice[:k*M] = st['seaice'].values
 
 
+        except FileNotFoundError:
+                print('Could not find overturning file: computing it')
         except:
-                pass
+                raise
+                
         print(k)
 
         for i in range(k,N):

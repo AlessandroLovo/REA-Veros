@@ -39,6 +39,14 @@ def test_pert():
 
 
 def perturb_ic(filename):
+        '''
+        Perturbs the initial conditions by overwriting the restart file
+
+        Parameters
+        ----------
+        filename : str
+            path to the restart file
+        '''
 
         f = h5py.File(filename, 'r+')
 
