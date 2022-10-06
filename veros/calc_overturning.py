@@ -11,13 +11,16 @@ def compute_overturning(name:str):
     degtom = radius / 180. * np.pi
     N = 1
     M = 'infer'
+    ot = None
+    st = None
     #name = 'REA109i0'
     print(f'{name = }')
 
 
     if M == 'infer':
         try:
-            ot = xr.load_dataarray('overturning_%s.nc'%name)
+            ot = xr.load_dataarray('%s-overturning.nc'%name)
+            st = xr.load_dataset('%s-salt_temp.nc'%name)
             M = len(ot.time)
         except FileNotFoundError:
             avgs = xr.open_dataset("%s.0000.averages.nc"%name)
@@ -47,10 +50,12 @@ def compute_overturning(name:str):
     k=0
 
     try:
-        ot = xr.load_dataarray('overturning_%s.nc'%name)
-        st = xr.load_dataset('salt_temp_%s.nc'%name)
+        if ot is None:
+            ot = xr.load_dataarray('%s-overturning.nc'%name)
+        if st is None:
+            st = xr.load_dataset('%s-salt_temp.nc'%name)
         k = int(len(ot.time)/M)
-        print(k)
+        print(f'{k = }')
 
         t_amoc[:k*M] = ot.time.values
         amoc_all[:k*M,:,:] = ot.values
@@ -131,8 +136,8 @@ def compute_overturning(name:str):
     ds = xr.DataArray(np.asarray(amoc_all), coords=[t_amoc, zt, yu], dims=['time', 'depth', 'lat'])
     ds2 = xr.Dataset({'salt_tot': (['time'], salt_tot), 'salt_sub_NA': (['time'], salt_sub_NA), 'salt_sub_SA': (['time'], salt_sub_SA), 'temp_sub_NA': (['time'], temp_sub_NA), 'temp_sub_SA': (['time'], temp_sub_SA), 'sst_NA': (['time'], sst_NA), 'sst_SA': (['time'], sst_SA), 'sss_NA': (['time'], sss_NA), 'sss_SA': (['time'], sss_SA), 'rho_sub_NA': (['time'], rho_sub_NA), 'rho_sub_SA': (['time'], rho_sub_SA), 'rho_NA': (['time'], rho_NA), 'rho_SA': (['time'], rho_SA), 'salt_forc': (['time'], salt_forc), 'salt_forc_tot': (['time'], salt_forc_tot), 'seaice': (['time'], seaice)}, coords={'time': t_amoc})
 
-    ds.to_netcdf('overturning_%s.nc'%name)
-    ds2.to_netcdf('salt_temp_%s.nc'%name)
+    ds.to_netcdf('%s-overturning.nc'%name)
+    ds2.to_netcdf('%s-salt_temp.nc'%name)
 
     return ds
 
