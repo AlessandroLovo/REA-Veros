@@ -28,7 +28,7 @@ def setup_info(nens: int):
     Returns
     ------
     {
-        'members': {f'e{e+1:03d}': {} for e in range(`nens`)}
+        'members': {f'e{e+1:0d}': {} for e in range(`nens`)}
     }
     '''
     return {'members': {f'e{e+1:0{len(str(nens))}d}': {} for e in range(nens)}}

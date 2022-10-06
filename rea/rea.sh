@@ -188,6 +188,8 @@ fi
 
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
+mkdir -p $folder
+
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
 echo "# parameters of the algorithm " >> $arg_file
@@ -301,6 +303,16 @@ for n in $(seq 0 $NITER) ; do
             python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
         fi
         # perturbation of initial conditions is done in the cloning script
+
+        # check that the init files has been created
+        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+            if [[ ! -f "$it_folder/e$ens-init*" ]] ; then
+                echo "Missing init file!!!"
+                python log2telegram.py \""RUN FAILED"\" 50 $TARGS
+                return 1
+            fi
+        done
+
 
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"

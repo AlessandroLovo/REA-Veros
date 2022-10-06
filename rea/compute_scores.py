@@ -17,6 +17,7 @@ import numpy as np
 import logging
 import sys
 import os
+import subprocess
 
 sys.path.append('../')
 import general_purpose.utilities as ut
@@ -77,7 +78,7 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_scrip
         traj = f'{folder}/{ename}-traj.npy'
         if not os.path.exists(traj):
             if make_traj_script:
-                os.system(f'python {make_traj_script} {folder}/{ename}')
+                subprocess.run(f'python {make_traj_script} {folder}/{ename}'.split(' '))
             else:
                 raise RuntimeError('Trajectory not found and script for creating it not provided')
         traj = np.load(traj)

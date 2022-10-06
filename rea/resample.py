@@ -17,6 +17,7 @@ The script will write to the `info.json` file. If it doesn't find it, it will cr
 import numpy as np
 import sys
 import os
+import subprocess
 import logging
 
 sys.path.append('../')
@@ -27,7 +28,8 @@ if __name__ == '__main__':
     logger.handlers = [logging.StreamHandler(sys.stdout)]
 else:
     logger = logging.getLogger(__name__)
-logger.level = logging.INFO
+# logger.level = logging.INFO
+logger.level = logging.DEBUG
 
 def draw(weights:np.ndarray, method='choice') -> np.ndarray:
     weights = np.array(weights)
@@ -83,7 +85,7 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
     if cloning_script.endswith('.py'): # python script
         cloning_script = f'python {cloning_script}'
     else: # shell script
-        cloning_script = f'. {cloning_script}'
+        cloning_script = f'bash {cloning_script}'
 
     current_folder = current_folder.rstrip('/')
     previous_folder = previous_folder.rstrip('/')
@@ -125,7 +127,8 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
         cur_d['members'][e]['cum_log_escore_i'] = prev_d['members'][parent]['cum_log_escore_f']
 
         logger.debug(f'Creating init file for {current_folder}/{e}')
-        os.system(f"{cloning_script} {previous_folder}/{parent} {current_folder}/{e}")
+        # os.system(f"echo {cloning_script} {previous_folder}/{parent} {current_folder}/{e}")
+        subprocess.run(f"{cloning_script} {previous_folder}/{parent} {current_folder}/{e}".split(' '))
 
     # write the info dict to file
     ut.dict2json(cur_d, f'{current_folder}/info.json')
