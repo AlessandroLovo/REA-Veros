@@ -235,13 +235,12 @@ for n in $(seq 0 $NITER) ; do
     mkdir -p $it_folder # create the iteration folder
 
     if [[ $n == 0 ]] ; then # initialization: there might already be an ensemble, we might be continuing another run
-        echo "---Initializing ensemble---"
         if [[ ! -f "$is_folder/info.json" ]] ; then
             python setup_info.py $it_folder $nens # setup info file for this iteration if it is not there already
         fi
 
         if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
-            
+            echo "---Initializing ensemble---"
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log
             if $cluster ; then
@@ -283,6 +282,10 @@ for n in $(seq 0 $NITER) ; do
             fi
             echo "Dynamics completed" >> $dyn_log
             date >> $dyn_log
+        else
+            echo
+            echo "Ensemble has already been propagated for this iteration"
+            echo
         fi
     
     else # normal iteration : we propagate each ensemble member from their restart file
