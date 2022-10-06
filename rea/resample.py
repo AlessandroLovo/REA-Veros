@@ -28,8 +28,8 @@ if __name__ == '__main__':
     logger.handlers = [logging.StreamHandler(sys.stdout)]
 else:
     logger = logging.getLogger(__name__)
-# logger.level = logging.INFO
-logger.level = logging.DEBUG
+logger.level = logging.INFO
+# logger.level = logging.DEBUG
 
 def draw(weights:np.ndarray, method='choice') -> np.ndarray:
     weights = np.array(weights)
@@ -118,6 +118,7 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
     cur_d['parents'] = n_survivors
     cur_d['kill_ratio'] = 1 - n_survivors/ensemble_size
     cur_d['previous_folder'] = prev_fold_dir
+    cur_d['cum_log_norm_factor_i'] = prev_d['cum_log_norm_factor_f']
 
     # setup the parent attribute and create the init file for each ensemble member
     for i,e in enumerate(cur_d['members']):

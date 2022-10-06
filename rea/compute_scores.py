@@ -116,6 +116,9 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_scrip
 
     # save in the dictionary
     d['norm_factor'] = norm_factor/len(escores) # in the papaers the normalization factor is defined as the average escore, not the sum
+    if 'cum_log_norm_factor_i' not in d:
+        d['cum_log_norm_factor_i'] = 0
+    d['cum_log_norm_factor_f'] = d['cum_log_norm_factor_i'] + np.log(d['norm_factor'])
     for i,e in enumerate(d['members']):
         d['members'][e]['weight'] = escores[i]
 

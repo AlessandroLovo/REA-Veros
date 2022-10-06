@@ -306,7 +306,7 @@ for n in $(seq 0 $NITER) ; do
 
         # check that the init files has been created
         for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-            if [[ ! -f "$it_folder/e$ens-init*" ]] ; then
+            if  ! compgen -G "$it_folder/e$ens-init*" > /dev/null; then
                 echo "Missing init file!!!"
                 python log2telegram.py \""RUN FAILED"\" 50 $TARGS
                 return 1
