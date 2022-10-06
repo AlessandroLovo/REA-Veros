@@ -10,6 +10,7 @@ k=2 # selection strenght parameter
 p="0" # prefix
 
 initial_ensemble_folder='' # if provided contains the properly named already propagated ensemble members in their first iteration
+init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 
 # useful default arguments
 mode='demo'
@@ -73,8 +74,13 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
-        -I|--initial-ensemble)
+        -E|--initial-ensemble)
             initial_ensemble_folder="$2"
+            shift
+            shift
+            ;;
+        -I|--init-file)
+            init_file="$2"
             shift
             shift
             ;;
@@ -173,7 +179,8 @@ i0=0
 if [[ -z ${initial_ensemble_folder} ]] ; then
     folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
 else
-    root_folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
+    init_file=''
+    folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
     i0="${initial_ensemble_folder##*i}" # this is the name of the iteration folder without the initial 'i'
     i0="${i0%/*}" # remove the ending '/'
     i0=$(($i0 + 0)) # evaluate the string so now it is a number
@@ -183,7 +190,7 @@ TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
-echo "# parameters of the algorithm ">> $arg_file
+echo "# parameters of the algorithm " >> $arg_file
 echo "NITER : $NITER # number of iterations" >> $arg_file
 echo "T : $T # resampling timestep" >> $arg_file
 echo "nens : $nens # number of ensemble members" >> $arg_file
@@ -218,56 +225,66 @@ python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $fol
 
 ### start of the algorithm ###
 
-for n in $(seq $i0 $(($NITER + $i0)) ) ; do
-    _n=$(printf "%04d" $n)
+for n in $(seq 0 $NITER) ; do
+    _n=$(printf "%04d" $(($n + $i0)) )
     python log2telegram.py \""------------Iteration $_n-------------"\" 31 $TARGS
     it_folder="$folder/i$_n"
+    dyn_log="$it_folder/dynamics.log"
     mkdir -p $it_folder # create the iteration folder
 
-    if [[ $n == 0 ]] ; then # initialization: there is no restart file for each ensemble member
+    if [[ $n == 0 ]] ; then # initialization: there might already be an ensemble, we might be continuing another run
         echo "---Initializing ensemble---"
-        python setup_info.py $it_folder $nens # setup info file for this iteration
+        if [[ ! -f "$is_folder/info.json" ]] ; then
+            python setup_info.py $it_folder $nens # setup info file for this iteration if it is not there already
+        fi
 
-        if $cluster ; then
-            # load modules for running the dynamics
-            . $dynamics_modules
-            module list
+        if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
+            
+            date >> $dyn_log
+            echo "Starting dynamics" >> $dyn_log
+            if $cluster ; then
+                # load modules for running the dynamics
+                . $dynamics_modules
+                module list
 
-            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                    jobID=$($ens % $msj)
-                    $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens &
-            done
-            wait
-
-            # restore modules for python
-            module purge
-            . $python_modules
-
-        else
-            # propagate ensemble members in batches (if msj==nens there will be only one batch)
-            last_e=0
-            batch=1
-            keep_going=true
-            while $keep_going ; do
-                if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                    end_e=$(($last_e + $msj))
-                else
-                    end_e=$nens
-                    keep_going=false
-                fi
-
-                python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                    $dynamics_script $T $it_folder/e$ens &
+                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+                        jobID=$($ens % $msj)
+                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens $init_file &
                 done
                 wait
-                batch=$(($batch + 1))
-                last_e=$end_e
-            done
+
+                # restore modules for python
+                module purge
+                . $python_modules
+
+            else
+                # propagate ensemble members in batches (if msj==nens there will be only one batch)
+                last_e=0
+                batch=1
+                keep_going=true
+                while $keep_going ; do
+                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
+                        end_e=$(($last_e + $msj))
+                    else
+                        end_e=$nens
+                        keep_going=false
+                    fi
+
+                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                        $dynamics_script $T $it_folder/e$ens $init_file &
+                    done
+                    wait
+                    batch=$(($batch + 1))
+                    last_e=$end_e
+                done
+            fi
+            echo "Dynamics completed" >> $dyn_log
+            date >> $dyn_log
         fi
     
     else # normal iteration : we propagate each ensemble member from their restart file
-        prev_it=$(printf "%04d" $(( n - 1 )) )
+        prev_it=$(printf "%04d" $(($n + $i0 - 1)) )
         prev_it_folder="$folder/i$prev_it"
 
         echo "---Computing scores---"
@@ -276,10 +293,6 @@ for n in $(seq $i0 $(($NITER + $i0)) ) ; do
         else
             python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
-
-        ## set up info file for this iteration
-        ## this is not necessary as it would be done anyways by the resampling script
-        # python setup_info.py $it_folder $nens
 
         echo "---Selecting---"
         if $cluster ; then
@@ -292,6 +305,8 @@ for n in $(seq $i0 $(($NITER + $i0)) ) ; do
         if [[ $n != $NITER ]] ; then
             echo "---Propagating---"
 
+            date >> $dyn_log
+            echo "Starting dynamics" >> $dyn_log
             if $cluster ; then
                 # load modules for running the dynamics
                 . $dynamics_modules
@@ -329,6 +344,8 @@ for n in $(seq $i0 $(($NITER + $i0)) ) ; do
                     last_e=$end_e
                 done
             fi
+            echo "Dynamics completed" >> $dyn_log
+            date >> $dyn_log
         fi
     fi
 done
