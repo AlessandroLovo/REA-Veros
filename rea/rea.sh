@@ -9,6 +9,8 @@ nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 p="0" # prefix
 
+initial_ensemble_folder='' # if provided contains the properly named already propagated ensemble members in their first iteration
+
 # useful default arguments
 mode='demo'
 if [[ "$mode" == "veros" ]] ; then
