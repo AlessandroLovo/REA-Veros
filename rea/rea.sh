@@ -73,6 +73,11 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
+        -I|--initial-ensemble)
+            initial_ensemble_folder="$2"
+            shift
+            shift
+            ;;
         -k|--k)
             k="$2"
             shift # past argument
@@ -145,6 +150,8 @@ done
 
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to the first positional argument and so on
 
+
+
 ########## Actual script ##########
 
 ### preliminary operations ###
@@ -161,7 +168,16 @@ if [[ ! -z ${account} ]] ; then
     sbatch_script="$sbatch_script --account=$account"
 fi
 
-folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+i0=0
+
+if [[ -z ${initial_ensemble_folder} ]] ; then
+    folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+else
+    root_folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
+    i0="${initial_ensemble_folder##*i}" # this is the name of the iteration folder without the initial 'i'
+    i0="${i0%/*}" # remove the ending '/'
+    i0=$(($i0 + 0)) # evaluate the string so now it is a number
+fi
 
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
@@ -202,7 +218,7 @@ python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $fol
 
 ### start of the algorithm ###
 
-for n in $(seq 0 $NITER) ; do
+for n in $(seq $i0 $(($NITER + $i0)) ) ; do
     _n=$(printf "%04d" $n)
     python log2telegram.py \""------------Iteration $_n-------------"\" 31 $TARGS
     it_folder="$folder/i$_n"
@@ -219,7 +235,7 @@ for n in $(seq 0 $NITER) ; do
 
             for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                     jobID=$($ens % $msj)
-                    $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- &
+                    $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens &
             done
             wait
 
@@ -242,7 +258,7 @@ for n in $(seq 0 $NITER) ; do
 
                 python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
                 for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                    $dynamics_script $T $it_folder/e$ens- &
+                    $dynamics_script $T $it_folder/e$ens &
                 done
                 wait
                 batch=$(($batch + 1))
@@ -283,7 +299,7 @@ for n in $(seq 0 $NITER) ; do
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$($ens % $msj)
-                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens &
                 done
                 wait
 
@@ -306,7 +322,7 @@ for n in $(seq 0 $NITER) ; do
 
                     python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
                     for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens- $it_folder/e$ens-init.npy &
+                        $dynamics_script $T $it_folder/e$ens &
                     done
                     wait
                     batch=$(($batch + 1))

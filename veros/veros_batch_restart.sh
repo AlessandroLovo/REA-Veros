@@ -11,17 +11,12 @@
 # new architecture:
 # $1: time in years
 # $2: prefix
-# $3: restart (init) file. If not provided set a default restart file: TODO!
+# $3: restart (init) file. If not provided it is $2-init.h5
 
 ###export OMP_NUM_THREADS=1
 
-# echo "First arg: $1"
-# echo "Second arg: $2"
-# echo "Third arg: $3"
-
 if [[ -z $3 ]] ; then
-    echo "default restart file not supported"
-    return 1
+    init_file="$2-init.h5"
 else
     init_file="$3"
 fi

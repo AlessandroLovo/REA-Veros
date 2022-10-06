@@ -18,6 +18,7 @@ The script will save a trajectory file `prefix`traj.npy as [(t_0,x_0), ..., (t_n
 from pathlib import Path
 import numpy as np
 import sys
+import os
 
 dt = 0.002
 mu = 0
@@ -57,6 +58,11 @@ if __name__ == '__main__':
     if len(sys.argv) > 3:
         restart_file = sys.argv[3]
 
+    if restart_file is None:
+        restart_file = f'{prefix}-init.npy'
+        if not os.path.exists(restart_file):
+            restart_file = None
+
     traj = run(niter, restart_file)
 
     # create the folder if it doesn't exist
@@ -65,7 +71,7 @@ if __name__ == '__main__':
         if not folder.exists():
             folder.mkdir(parents=True)
 
-    np.save(f'{prefix}traj.npy',traj)
+    np.save(f'{prefix}-traj.npy',traj)
 
-    np.save(f'{prefix}restart.npy',traj[-1])
+    np.save(f'{prefix}-restart.npy',traj[-1])
     
