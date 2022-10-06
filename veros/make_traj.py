@@ -15,7 +15,7 @@ def make_traj(prefix:str):
     t, amoc = ga.amoc_timeseries(overturning)
 
     traj = np.array([t,amoc]).T
-    print(traj.shape)
+    print(f'{traj.shape = }')
     np.save(f'{prefix}-traj.npy', traj)
 
 if __name__ == '__main__':

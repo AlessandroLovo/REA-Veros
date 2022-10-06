@@ -47,7 +47,7 @@ def eval_score(traj) -> float:
     '''
     return traj[-1,1] - traj[0,1]
 
-window_width = 5
+window_width = 1
 def eval_cum_score(traj, initial=False) -> float:
     if initial:
         return np.mean(traj[:window_width,1])

@@ -86,7 +86,7 @@ def compute_overturning(name:str):
     print(f'{k = }')
 
     for i in range(k,N):
-        print(i)
+        print(f'{i + 1 = }/{N}')
         count = str(i); count = count.zfill(4)
         avgs = xr.open_dataset("%s.%s.averages.nc"%(name,count))
         snap = xr.open_dataset("%s.%s.snapshot.nc"%(name,count))
