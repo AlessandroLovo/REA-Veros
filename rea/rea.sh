@@ -183,7 +183,7 @@ else
     init_file=''
     folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
     i0="${initial_ensemble_folder##*i}" # this is the name of the iteration folder without the initial 'i'
-    i0="${i0%/*}" # remove the ending '/'
+    i0="${i0%/}" # remove the ending '/'
     i0=$(($i0 + 0)) # evaluate the string so now it is a number
 fi
 
