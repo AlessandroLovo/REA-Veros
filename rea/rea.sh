@@ -40,7 +40,7 @@ sbatch_script="sbatch --wait --dependency=singleton"
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
 CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
-TLL=40 # telegram logging level
+TLL=30 # telegram logging level
 
 
 while [[ $# -gt 0 ]]; do
@@ -241,7 +241,7 @@ for n in $(seq 0 $NITER) ; do
         fi
 
         if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
-            echo "---Initializing ensemble---"
+            python log2telegram.py \""---Initializing ensemble---"\" 25 $TARGS
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log
             if $cluster ; then
@@ -285,7 +285,7 @@ for n in $(seq 0 $NITER) ; do
             date >> $dyn_log
         else
             echo
-            echo "Ensemble has already been propagated for this iteration"
+            python log2telegram.py \""Ensemble has already been propagated for this iteration"\" 25 $TARGS
             echo
         fi
     
@@ -293,14 +293,14 @@ for n in $(seq 0 $NITER) ; do
         prev_it=$(printf "%04d" $(($n + $i0 - 1)) )
         prev_it_folder="$folder/i$prev_it"
 
-        echo "---Computing scores---"
+        python log2telegram.py \""---Computing scores---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
         else
             python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
 
-        echo "---Resampling---"
+        python log2telegram.py \""---Resampling---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
         else
@@ -319,7 +319,7 @@ for n in $(seq 0 $NITER) ; do
 
 
         if [[ $n != $NITER ]] ; then
-            echo "---Propagating---"
+            python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log

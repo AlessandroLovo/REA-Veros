@@ -71,6 +71,8 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_scrip
 
     d = ut.json2dict(f'{folder}/info.json')
 
+    d['k'] = k
+
     # compute the scores
     logger.info('Computing scores for each ensemble member')
     escores = []
