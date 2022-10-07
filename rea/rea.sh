@@ -21,15 +21,16 @@ if [[ "$mode" == "veros" ]] ; then
     dynamics_script='../veros/veros_batch_restart.sh'
     make_traj_script='../veros/make_traj.py'
     T=100
+    msj=5 # max simultaneous jobs
 else
     root_folder='../demo/__test__'
     dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
     cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
     dynamics_script='python ../demo/ou.py'
     make_traj_script='None'
+    msj=0 # max simultaneous jobs
 fi
 
-msj=0 # max simultaneous jobs
 cluster=false
 partition="aegir"
 account="ocean"
@@ -54,13 +55,13 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        -k|--k)
+            k="$2"
+            shift # past argument
+            shift # past value
+            ;;
         --cloning-script)
             cloning_script="$2"
-            shift
-            shift
-            ;;
-        --make-traj-script)
-            make_traj_script="$2"
             shift
             shift
             ;;
@@ -74,6 +75,11 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
+        --make-traj-script)
+            make_traj_script="$2"
+            shift
+            shift
+            ;;
         -E|--initial-ensemble)
             initial_ensemble_folder="$2"
             shift
@@ -83,11 +89,6 @@ while [[ $# -gt 0 ]]; do
             init_file="$2"
             shift
             shift
-            ;;
-        -k|--k)
-            k="$2"
-            shift # past argument
-            shift # past value
             ;;
         -p|--prefix)
             p="$2"
