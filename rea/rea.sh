@@ -251,7 +251,7 @@ for n in $(seq 0 $NITER) ; do
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
-                        $sbatch_script --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
+                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
                 done
                 wait
 
@@ -295,14 +295,14 @@ for n in $(seq 0 $NITER) ; do
 
         echo "---Computing scores---"
         if $cluster ; then
-            $sbatch_script --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
+            $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
         else
             python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
 
         echo "---Resampling---"
         if $cluster ; then
-            $sbatch_script --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
+            $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
         else
             python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
         fi
@@ -312,7 +312,7 @@ for n in $(seq 0 $NITER) ; do
         for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
             if  ! compgen -G "$it_folder/e$ens-init*" > /dev/null; then
                 echo "Missing init file!!!"
-                python log2telegram.py \""RUN FAILED"\" 50 $TARGS
+                python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
                 return 1
             fi
         done
@@ -330,7 +330,7 @@ for n in $(seq 0 $NITER) ; do
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
-                        $sbatch_script --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
+                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
                 done
                 wait
 
@@ -369,6 +369,6 @@ done
 python log2telegram.py \""------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""$HOSTNAME:\\n\\nTASK COMPLETED"\" 45 $TARGS
+python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
 echo
 echo
