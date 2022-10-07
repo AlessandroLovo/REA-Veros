@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import os
 #import h5netcdf
 # import matplotlib.pyplot as plt
 import sys
@@ -14,17 +15,26 @@ def compute_overturning(name:str):
     ot = None
     st = None
     #name = 'REA109i0'
-    print(f'{name = }')
+    print(f'compute_overturning for {name = }')
 
-
-    if M == 'infer':
+    if os.path.exists('%s-overturning.nc'%name):
+        print('Found overturning file')
         try:
             ot = xr.load_dataarray('%s-overturning.nc'%name)
-            st = xr.load_dataset('%s-salt_temp.nc'%name)
-            M = len(ot.time)
-        except FileNotFoundError:
-            avgs = xr.open_dataset("%s.0000.averages.nc"%name)
+            return ot
+        except:
+            print('Cound not open overturning file')
+    
+    print('Computing overturning from averages')
+
+    if M == 'infer':
+        print('inferring M')
+        if os.path.exists("%s.0000.averages.nc"%name):
+            print('Found averages file')
+            avgs = xr.load_dataset("%s.0000.averages.nc"%name)
             M = len(avgs.Time)
+        else:
+            raise FileNotFoundError('Could not find neither overturning nor averages')
 
     print(f'{M = }')
 
@@ -49,41 +59,36 @@ def compute_overturning(name:str):
 
     k=0
 
-    try:
-        if ot is None:
-            ot = xr.load_dataarray('%s-overturning.nc'%name)
-        if st is None:
-            st = xr.load_dataset('%s-salt_temp.nc'%name)
-        k = int(len(ot.time)/M)
-        print(f'{k = }')
+    # try:
+    #     if ot is None:
+    #         ot = xr.load_dataarray('%s-overturning.nc'%name)
+    #     return ot
+        # if st is None:
+        #     st = xr.load_dataset('%s-salt_temp.nc'%name)
+        # k = int(len(ot.time)/M)
+        # print(f'{k = }')
 
-        t_amoc[:k*M] = ot.time.values
-        amoc_all[:k*M,:,:] = ot.values
+        # t_amoc[:k*M] = ot.time.values
+        # amoc_all[:k*M,:,:] = ot.values
 
-        sss_NA[:k*M] = st['sss_NA'].values
-        sst_NA[:k*M] = st['sst_NA'].values
-        sss_SA[:k*M] = st['sss_SA'].values
-        sst_SA[:k*M] = st['sst_SA'].values
-        temp_sub_NA[:k*M] = st['temp_sub_NA'].values
-        temp_sub_SA[:k*M] = st['temp_sub_SA'].values
-        salt_sub_NA[:k*M] = st['salt_sub_NA'].values
-        salt_sub_SA[:k*M] = st['salt_sub_SA'].values
-        rho_sub_NA[:k*M] = st['rho_sub_NA'].values
-        rho_sub_SA[:k*M] = st['rho_sub_SA'].values
-        rho_NA[:k*M] = st['rho_NA'].values
-        rho_SA[:k*M] = st['rho_SA'].values
-        salt_forc[:k*M] = st['salt_forc'].values
-        salt_forc_tot[:k*M] = st['salt_forc_tot'].values
-        salt_tot[:k*M] = st['salt_tot'].values
-        seaice[:k*M] = st['seaice'].values
-
-
-    except FileNotFoundError:
-        print('Could not find overturning file: computing it')
-    except:
-        raise
+        # sss_NA[:k*M] = st['sss_NA'].values
+        # sst_NA[:k*M] = st['sst_NA'].values
+        # sss_SA[:k*M] = st['sss_SA'].values
+        # sst_SA[:k*M] = st['sst_SA'].values
+        # temp_sub_NA[:k*M] = st['temp_sub_NA'].values
+        # temp_sub_SA[:k*M] = st['temp_sub_SA'].values
+        # salt_sub_NA[:k*M] = st['salt_sub_NA'].values
+        # salt_sub_SA[:k*M] = st['salt_sub_SA'].values
+        # rho_sub_NA[:k*M] = st['rho_sub_NA'].values
+        # rho_sub_SA[:k*M] = st['rho_sub_SA'].values
+        # rho_NA[:k*M] = st['rho_NA'].values
+        # rho_SA[:k*M] = st['rho_SA'].values
+        # salt_forc[:k*M] = st['salt_forc'].values
+        # salt_forc_tot[:k*M] = st['salt_forc_tot'].values
+        # salt_tot[:k*M] = st['salt_tot'].values
+        # seaice[:k*M] = st['seaice'].values
     
-    print(f'{k = }')
+    # print(f'{k = }')
 
     for i in range(k,N):
         print(f'{i + 1 = }/{N}')
@@ -133,11 +138,11 @@ def compute_overturning(name:str):
 
 
 
-    ds = xr.DataArray(np.asarray(amoc_all), coords=[t_amoc, zt, yu], dims=['time', 'depth', 'lat'])
-    ds2 = xr.Dataset({'salt_tot': (['time'], salt_tot), 'salt_sub_NA': (['time'], salt_sub_NA), 'salt_sub_SA': (['time'], salt_sub_SA), 'temp_sub_NA': (['time'], temp_sub_NA), 'temp_sub_SA': (['time'], temp_sub_SA), 'sst_NA': (['time'], sst_NA), 'sst_SA': (['time'], sst_SA), 'sss_NA': (['time'], sss_NA), 'sss_SA': (['time'], sss_SA), 'rho_sub_NA': (['time'], rho_sub_NA), 'rho_sub_SA': (['time'], rho_sub_SA), 'rho_NA': (['time'], rho_NA), 'rho_SA': (['time'], rho_SA), 'salt_forc': (['time'], salt_forc), 'salt_forc_tot': (['time'], salt_forc_tot), 'seaice': (['time'], seaice)}, coords={'time': t_amoc})
+        ds = xr.DataArray(np.asarray(amoc_all), coords=[t_amoc, zt, yu], dims=['time', 'depth', 'lat'])
+        ds2 = xr.Dataset({'salt_tot': (['time'], salt_tot), 'salt_sub_NA': (['time'], salt_sub_NA), 'salt_sub_SA': (['time'], salt_sub_SA), 'temp_sub_NA': (['time'], temp_sub_NA), 'temp_sub_SA': (['time'], temp_sub_SA), 'sst_NA': (['time'], sst_NA), 'sst_SA': (['time'], sst_SA), 'sss_NA': (['time'], sss_NA), 'sss_SA': (['time'], sss_SA), 'rho_sub_NA': (['time'], rho_sub_NA), 'rho_sub_SA': (['time'], rho_sub_SA), 'rho_NA': (['time'], rho_NA), 'rho_SA': (['time'], rho_SA), 'salt_forc': (['time'], salt_forc), 'salt_forc_tot': (['time'], salt_forc_tot), 'seaice': (['time'], seaice)}, coords={'time': t_amoc})
 
-    ds.to_netcdf('%s-overturning.nc'%name)
-    ds2.to_netcdf('%s-salt_temp.nc'%name)
+        ds.to_netcdf('%s-overturning.nc'%name)
+        ds2.to_netcdf('%s-salt_temp.nc'%name)
 
     return ds
 

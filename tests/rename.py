@@ -4,8 +4,13 @@ import sys
 folder = sys.argv[1]
 
 for filename in os.listdir(folder):
-    if filename.startswith('REA1'):
-        num = int(filename[4:6]) + 1
-        nf = f'e{num:02d}{filename[8:]}'
+    # if filename.startswith('REA1'):
+    #     num = int(filename[4:6]) + 1
+    #     nf = f'e{num:02d}{filename[8:]}'
+    #     print(f'{filename} -> {nf}')
+    #     os.system(f'mv {folder}/{filename} {folder}/{nf}')
+
+    if filename.startswith('e0'):
+        nf = f'e{filename[2:]}'
         print(f'{filename} -> {nf}')
         os.system(f'mv {folder}/{filename} {folder}/{nf}')

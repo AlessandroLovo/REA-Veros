@@ -13,7 +13,7 @@ initial_ensemble_folder='' # if provided contains the properly named already pro
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 
 # useful default arguments
-mode='demo'
+mode='veros'
 if [[ "$mode" == "veros" ]] ; then
     root_folder='../veros/__test__' # TODO: update it
     dynamics_modules='../veros/veros_modules.sh' # script that loads the modules for the dynamics
@@ -250,8 +250,8 @@ for n in $(seq 0 $NITER) ; do
                 module list
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$($ens % $msj)
-                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens $init_file &
+                        jobID=$((10#$ens % $msj))
+                        $sbatch_script --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
                 done
                 wait
 
@@ -295,12 +295,12 @@ for n in $(seq 0 $NITER) ; do
 
         echo "---Computing scores---"
         if $cluster ; then
-            $sbatch_script --job-name=rea_cs scompute_scores.sh $k $prev_it_folder
+            $sbatch_script --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
         else
             python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
 
-        echo "---Selecting---"
+        echo "---Resampling---"
         if $cluster ; then
             $sbatch_script --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
         else
@@ -329,8 +329,8 @@ for n in $(seq 0 $NITER) ; do
                 module list
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$($ens % $msj)
-                        $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens &
+                        jobID=$((10#$ens % $msj))
+                        $sbatch_script --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
                 done
                 wait
 

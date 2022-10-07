@@ -122,7 +122,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
             )
 
         #with h5netcdf.File(DATA_FILES['forcing'], 'r', **kwargs) as forcing_file:
-        with h5netcdf.File('forcing_1deg_global_hosing.nc', 'r', **kwargs) as forcing_file:
+        with h5netcdf.File(os.path.join(BASE_PATH,'forcing_1deg_global_hosing.nc'), 'r', **kwargs) as forcing_file:
 
             var_obj = forcing_file.variables[var]
             return np.array(var_obj[idx].astype(str(var_obj.dtype))).T

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nens=13
-maxj=3
+msj=3
 
 last_e=0
 # keep_going=true
@@ -19,8 +19,14 @@ last_e=0
 #     last_e=$end_e
 # done
 
-if [[ $last_e ]] ; then
-echo ha!
-fi
+# if [[ $last_e ]] ; then
+# echo ha!
+# fi
 
-echo $@
+for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
+    jobID="$((10#$ens % $msj))"
+    # $sbatch_script --job-name=rea$jobID $dynamics_script $T $it_folder/e$ens $init_file &
+    echo rea$jobID
+done
+
+# echo $@
