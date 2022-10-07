@@ -15,6 +15,8 @@ def make_traj(prefix:str):
     t, amoc = ga.amoc_timeseries(overturning)
 
     traj = np.array([t,amoc]).T
+    # we want to minimize the amoc strength, so we multiply the amoc by -1
+    traj = traj*np.array([1,-1]) # we don't touch the time axis
     print(f'{traj.shape = }')
     np.save(f'{prefix}-traj.npy', traj)
 
