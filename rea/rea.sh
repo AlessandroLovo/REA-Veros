@@ -176,6 +176,7 @@ if [[ ! -z ${account} ]] ; then
 fi
 
 i0=0
+echo i0=$i0
 
 if [[ -z ${initial_ensemble_folder} ]] ; then
     folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
@@ -184,8 +185,9 @@ else
     folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
     i0="${initial_ensemble_folder##*i}" # this is the name of the iteration folder without the initial 'i'
     i0="${i0%/}" # remove the ending '/'
-    i0=$(($i0 + 0)) # evaluate the string so now it is a number
+    i0=$((10#$i0 + 0)) # evaluate the string so now it is a number
 fi
+echo i0=$i0
 
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
