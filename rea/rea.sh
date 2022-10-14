@@ -238,12 +238,16 @@ for n in $(seq 0 $NITER) ; do
     mkdir -p $it_folder # create the iteration folder
 
     if [[ $n == 0 ]] ; then # initialization: there might already be an ensemble, we might be continuing another run
-        if [[ ! -f "$is_folder/info.json" ]] ; then
+        if [[ ! -f "$it_folder/info.json" ]] ; then
+            python log2telegram.py \""---Initializing ensemble---"\" 31 $TARGS
             python setup_info.py $it_folder $nens # setup info file for this iteration if it is not there already
+        else
+            python log2telegram.py \""---Continuing run---"\" 31 $TARGS
         fi
 
         if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
-            python log2telegram.py \""---Initializing ensemble---"\" 25 $TARGS
+            python log2telegram.py \""---Propagating---"\" 25 $TARGS
+
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log
             if $cluster ; then

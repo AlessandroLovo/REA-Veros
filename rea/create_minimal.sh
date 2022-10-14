@@ -9,7 +9,7 @@ mkdir -p $folder_minimal
 cp $folder/parameters.txt $folder_minimal/
 cp $folder/reconstructed.json $folder_minimal/
 
-for subf in $folder/* ; do
+for subf in $folder/i* ; do
     if [[ -d $subf ]] ; then
         ending="${subf##*/}"
         echo $ending
