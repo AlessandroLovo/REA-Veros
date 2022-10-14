@@ -238,7 +238,7 @@ for n in $(seq 0 $NITER) ; do
     mkdir -p $it_folder # create the iteration folder
 
     if [[ $n == 0 ]] ; then # initialization: there might already be an ensemble, we might be continuing another run
-        if [[ ! -f "$is_folder/info.json" ]] ; then
+        if [[ ! -f "$it_folder/info.json" ]] ; then
             python setup_info.py $it_folder $nens # setup info file for this iteration if it is not there already
         fi
 
