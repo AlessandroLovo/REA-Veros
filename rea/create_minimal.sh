@@ -15,7 +15,12 @@ for subf in $folder/i* ; do
         echo $ending
         dest="$folder_minimal/$ending"
         mkdir -p $dest
-        cp $subf/info.json $dest
-        cp $subf/*traj.npy $dest
+        ntraj=$(ls $dest/*traj.npy | wc -l)
+        if [[ $ntraj == 0 ]] ; then 
+            cp $subf/info.json $dest
+            cp $subf/*traj.npy $dest
+        else
+            echo Skipping folder $dest
+        fi
     fi
 done
