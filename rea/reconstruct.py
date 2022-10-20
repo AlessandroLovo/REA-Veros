@@ -28,7 +28,7 @@ logger.level = logging.INFO
 
 
 
-def reconstruct(last_folder: str, write=False):
+def reconstruct(last_folder: str, write=False, retrace=False):
     '''
     Recontructs trajectories and compute their unbiasing weights
 
@@ -38,6 +38,8 @@ def reconstruct(last_folder: str, write=False):
         folder with the last step of the GKTL algorithm
     write : bool, optional
         Whether to write the result to a `root_folder`/recontructed.json, where `root_folder` is the parent of `last_folder`, by default False
+    retrace : bool, optional
+        Whether to compute the weights by retracing the scores through the ancestry or just use the cumulative scores. By default False
 
     Returns
     -------
@@ -73,8 +75,14 @@ def reconstruct(last_folder: str, write=False):
     parents = set([])
     for ename,e in info['members'].items():
         parent = e['parent']
-        d['members'][ename.replace('e','r')]= {'cum_score': 0.0, 'cum_log_escore': 0.0, 'ancestry': [parent]}
+        if retrace:
+            d['members'][ename.replace('e','r')]= {'cum_score': 0.0, 'cum_log_escore': 0.0, 'ancestry': [parent]}
+        else:
+            d['members'][ename.replace('e','r')]= {'cum_score': e['cum_score_i'], 'cum_log_escore': e['cum_log_escore_i'], 'ancestry': [parent]}
         parents.add(parent)
+
+    if not retrace:
+        d['cum_log_norm_factor'] = info['cum_log_norm_factor_i']
     
     while True:
         prev_folder = info['previous_folder']
@@ -83,14 +91,16 @@ def reconstruct(last_folder: str, write=False):
         # info file of the folder of the parents
         info = ut.json2dict(f'{root_folder}/{prev_folder}/info.json')
         d['folders'].append(prev_folder)
-        d['cum_log_norm_factor'] += np.log(info['norm_factor'])
+        if retrace:
+            d['cum_log_norm_factor'] += np.log(info['norm_factor'])
         d['independent_parents'].append(len(parents))
 
         # add the score of the parent to the total score of this member
         for e in d['members'].values():
             parent = e['ancestry'][-1]
-            e['cum_score'] += info['members'][parent]['score']
-            e['cum_log_escore'] += np.log(info['members'][parent]['escore'])
+            if retrace:
+                e['cum_score'] += info['members'][parent]['score']
+                e['cum_log_escore'] += np.log(info['members'][parent]['escore'])
 
         # detect if we reached the last ancestor
         if 'previous_folder' not in info or not info['previous_folder']:
@@ -107,6 +117,9 @@ def reconstruct(last_folder: str, write=False):
         # move back one step by setting the new parents as the now grandparents
         parents = set(grand_parents.values())
 
+    if not retrace:
+        d['cum_log_norm_factor'] -= info['cum_log_norm_factor_i'] # info is the root info dictionary at this point
+
     # reverse the lists so time goes forward with them
     logger.info('Reversing time')
 
@@ -114,6 +127,11 @@ def reconstruct(last_folder: str, write=False):
     d['independent_parents'] = d['independent_parents'][::-1]
     for e in d['members'].values():
         e['ancestry'] = e['ancestry'][::-1]
+
+        if not retrace:
+            first_ancestor = info['members'][e['ancestry'][0]] # info is the root info dictionary at this point
+            e['cum_score'] -= first_ancestor['cum_score_i']
+            e['cum_log_escore'] -= first_ancestor['cum_log_escore_i']
 
         # assign the weight of each trajectory for computing probabilities
         e['weight'] = np.exp(d['cum_log_norm_factor'] - e['cum_log_escore'])
