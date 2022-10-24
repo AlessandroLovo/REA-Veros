@@ -15,7 +15,7 @@ for subf in $folder/i* ; do
         echo $ending
         dest="$folder_minimal/$ending"
         mkdir -p $dest
-        ntraj=$(ls $dest/*traj.npy | wc -l)
+        ntraj=$(ls $dest/*traj.npy 2> /dev/null | wc -l)
         if [[ $ntraj == 0 ]] ; then 
             cp $subf/info.json $dest
             cp $subf/*traj.npy $dest
