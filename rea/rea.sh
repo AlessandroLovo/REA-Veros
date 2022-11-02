@@ -11,6 +11,7 @@ p="0" # prefix
 
 initial_ensemble_folder='' # if provided contains the properly named already propagated ensemble members in their first iteration
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
+init_ensemble_script='' # if provided script for generating an ensemble from the single init file
 
 # useful default arguments
 mode='veros'
@@ -20,6 +21,7 @@ if [[ "$mode" == "veros" ]] ; then
     cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
     dynamics_script='../veros/veros_batch_restart.sh'
     make_traj_script='../veros/make_traj.py'
+    init_ensemble_script='../veros/make_ensemble.py'
     T=100
     msj=5 # max simultaneous jobs
 else
@@ -87,6 +89,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -I|--init-file) # common init file for the first iteration
             init_file="$2"
+            shift
+            shift
+            ;;
+        --init-ensemble-script) # script for creating an ensemble from a single init file
+            init_ensemble_script="$2"
             shift
             shift
             ;;
@@ -249,6 +256,17 @@ for n in $(seq 0 $NITER) ; do
 
         if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
+
+            if [[ ! -z ${init_file} ]] ; then
+                python log2telegram.py \""---Detected single common ancestor---"\" 25 $TARGS
+                if [[ ! -z ${init_ensemble_script} ]] ; then
+                    python log2telegram.py \""---Creating ensemble by perturbing initial conditions---"\" 25 $TARGS
+                    python $init_ensemble_script $init_file $it_folder $nens
+                    init_file=''
+                else
+                    python log2telegram.py \""---All ensemble members will have exactly the same initial conditions---"\" 25 $TARGS
+                fi
+            fi
 
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log

@@ -58,7 +58,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 3:
         restart_file = sys.argv[3]
 
-    if restart_file is None:
+    if restart_file is None: # detect init file
         restart_file = f'{prefix}-init.npy'
         if not os.path.exists(restart_file):
             restart_file = None

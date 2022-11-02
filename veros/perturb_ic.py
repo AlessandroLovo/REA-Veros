@@ -13,9 +13,9 @@ def perturb_ic(source, destination=None):
         path to the restart file
     '''
     if destination is None:
-            destination = source # overwrite mode
+        destination = source # overwrite mode
     if destination != source:
-            os.system(f'cp {source} {destination}')
+        os.system(f'cp {source} {destination}')
 
     f = h5py.File(destination, 'r+')
 
