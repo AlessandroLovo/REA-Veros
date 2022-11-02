@@ -35,7 +35,7 @@ cluster=false
 partition="aegir"
 account="ocean"
 python_modules='python_modules.sh' # script that loads the modules for python
-sbatch_script="sbatch --wait --dependency=singleton"
+sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
@@ -45,101 +45,101 @@ TLL=30 # telegram logging level
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -i|--iterations)
+        -i|--iterations) # number of iterations
             NITER="$2"
             shift # past argument
             shift # past value
             ;;
-        -d|--dynamics)
+        -d|--dynamics) # dynamics script
             dynamics_script="$2"
             shift
             shift
             ;;
-        -k|--k)
+        -k|--k) # selection strength
             k="$2"
             shift # past argument
             shift # past value
             ;;
-        --cloning-script)
+        --cloning-script) # cloning script
             cloning_script="$2"
             shift
             shift
             ;;
-        -t|--timestep)
+        -t|--timestep) # resampling timestep
             T="$2"
             shift # past argument
             shift # past value
             ;;
-        -e|--ensemble-size)
+        -e|--ensemble-size) # number of ensemble members
             nens="$2"
             shift # past argument
             shift # past value
             ;;
-        --make-traj-script)
+        --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
             make_traj_script="$2"
             shift
             shift
             ;;
-        -E|--initial-ensemble)
+        -E|--initial-ensemble) # folder where the initial ensemble is, either fully propagated or only with the init files
             initial_ensemble_folder="$2"
             shift
             shift
             ;;
-        -I|--init-file)
+        -I|--init-file) # common init file for the first iteration
             init_file="$2"
             shift
             shift
             ;;
-        -p|--prefix)
+        -p|--prefix) # prefix in naming the run folder
             p="$2"
             shift # past argument
             shift # past value
             ;;
-        -r|--root|--root-folder)
+        -r|--root|--root-folder) # parent of the run folder
             root_folder="$2"
             shift # past argument
             shift # past value
             ;;
-        -j|--jobs)
+        -j|--jobs) # maximum number of simultaneous ensemble members running
             msj="$2"
             shift # past argument
             shift # past value
             ;;
-        --cluster)
+        --cluster) # run on a cluster
             cluster=true
             shift
             ;;
-        -P|--partition)
+        -P|--partition) # cluster partition
             partition="$2"
             shift # past argument
             shift # past value
             ;;
-        -A|--account)
+        -A|--account) # cluster account
             account="$2"
             shift # past argument
             shift # past value
             ;;
-        --python-modules)
+        --python-modules) # script that loads the modules required for running python on the cluster
             python_modules="$2"
             shift
             shift
             ;;
-        --dynamics-modules)
+        --dynamics-modules) # script that loads the modules required for running the dynamics on the cluster
             dynamics_modules="$2"
             shift
             shift
             ;;
-        -b|--bot-token)
+        -b|--bot-token) # telegram bot authorization token
             TBT="$2"
             shift # past argument
             shift # past value
             ;;
-        -c|--chat-id)
+        -c|--chat-id) # telegram chat ID to whom to send the logs
             CHAT_ID="$2"
             shift # past argument
             shift # past value
             ;;
-        -l|--log-level)
+        -l|--log-level) # telegram logging level
             TLL="$2"
             shift # past argument
             shift # past value
@@ -163,10 +163,12 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to t
 
 ### preliminary operations ###
 
+# set the proper number of maximum simultaneous jobs
 if [[ $msj == 0 ]] ; then
     msj=$nens
 fi
 
+# prepare the sbatch launching command
 if [[ ! -z ${partition} ]] ; then
     sbatch_script="$sbatch_script --partition=$partition"
 fi
@@ -191,7 +193,7 @@ echo i0=$i0
 
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
-mkdir -p $folder
+mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
@@ -299,6 +301,7 @@ for n in $(seq 0 $NITER) ; do
         prev_it=$(printf "%04d" $(($n + $i0 - 1)) )
         prev_it_folder="$folder/i$prev_it"
 
+        # compute the score for each ensemble member
         python log2telegram.py \""---Computing scores---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
@@ -306,6 +309,7 @@ for n in $(seq 0 $NITER) ; do
             python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
         fi
 
+        # selection step, i.e. resampling
         python log2telegram.py \""---Resampling---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
@@ -314,7 +318,7 @@ for n in $(seq 0 $NITER) ; do
         fi
         # perturbation of initial conditions is done in the cloning script
 
-        # check that the init files has been created
+        # check that the all init files have been created
         for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
             if  ! compgen -G "$it_folder/e$ens-init*" > /dev/null; then
                 echo "Missing init file!!!"
@@ -323,8 +327,8 @@ for n in $(seq 0 $NITER) ; do
             fi
         done
 
-
-        if [[ $n != $NITER ]] ; then
+        # propagate the ensmble forward
+        if [[ $n != $NITER ]] ; then # do not propagate the last isteration
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
             date >> $dyn_log
