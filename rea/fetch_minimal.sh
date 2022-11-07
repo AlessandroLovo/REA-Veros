@@ -26,7 +26,7 @@ mkdir -p $destination
 scp $folder/parameters.txt $destination/
 scp $folder/reconstructed.json $destination/
 
-for n in {0..10} ; do
+for n in {0..9999} ; do
     echo $n
     _n=$(printf "%04d" $n)
     it="i$_n"
