@@ -96,9 +96,9 @@ def reconstruct(last_folder: str, write=False, retrace=False):
         d['independent_parents'].append(len(parents))
 
         # add the score of the parent to the total score of this member
-        for e in d['members'].values():
-            parent = e['ancestry'][-1]
-            if retrace:
+        if retrace:
+            for e in d['members'].values():
+                parent = e['ancestry'][-1]
                 e['cum_score'] += info['members'][parent]['score']
                 e['cum_log_escore'] += np.log(info['members'][parent]['escore'])
 

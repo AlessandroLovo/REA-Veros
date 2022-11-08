@@ -15,6 +15,7 @@ init_ensemble_script='' # if provided script for generating an ensemble from the
 
 # useful default arguments
 mode='veros'
+# mode='demo'
 if [[ "$mode" == "veros" ]] ; then
     root_folder='../veros/__test__' # TODO: update it
     dynamics_modules='../veros/veros_modules.sh' # script that loads the modules for the dynamics
