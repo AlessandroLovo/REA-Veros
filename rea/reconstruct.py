@@ -83,9 +83,18 @@ def reconstruct(last_folder: str, write=False, retrace=False):
 
     if not retrace:
         d['cum_log_norm_factor'] = info['cum_log_norm_factor_i']
-    
+
+    subf = '.'
     while True:
         prev_folder = info['previous_folder']
+        prev_folder = prev_folder.rstrip('/')
+        if '/' in prev_folder:
+            subf, prev_folder = prev_folder.rsplit('/',1)
+            logger.warning(f'Previous folder is in another root folder: moving to {subf}')
+
+        if subf != '.':
+            prev_folder = f'{subf}/{prev_folder}'
+
         logger.info(f'Opening {prev_folder}')
 
         # info file of the folder of the parents
