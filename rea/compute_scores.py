@@ -55,7 +55,7 @@ def eval_cum_score(traj, initial=False) -> float:
     return np.mean(traj[-window_width:,1])
     
 
-def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_script=None):
+def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canceling=False, make_traj_script=None):
     '''
     Computes the scores and weights for each ensemble member in a folder
 
@@ -65,6 +65,15 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_scrip
         biasing parameter, conjugated to the score. The higher the values, the sharper the selection. k=0 means uniform weight to all trajectories regardless of the score
     folder : str
         folder where the ensemble is located. Must contain a properly initialized `info.json` file
+    from_cum : bool
+        Whether to compute the score directly or from the cumulative score difference. The latter is useful if it is easier to compute the cumulative score, for instance when there is a time average.
+    telescopic_canceling : bool
+        Whether to enable telescopic canceling of the score terms. This parameter is irrelevant if the whole run is performed at constant `k`, but it produces different effects if `k` is changed.
+        If True, the final weight of a trajectory will be simply
+            `` exp(k_1 V_0 - k_n V_n) * cum_norm_factor ``
+        However, there will be a weird resampling step at the discontinuity in `k`
+        If False, there is no weirdness when k changes, but the weight of the trajectory will not telescopically cancel:
+            `` exp(\sum_{i=1}^n k_n(V_{i-1} - V_i) ) * cum_norm_factor
     '''
     # get the info dictionary
     folder = folder.rstrip('/')
@@ -91,18 +100,27 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, make_traj_scrip
                 e['cum_score_i'] = eval_cum_score(traj, initial=True)
                 e['cum_log_escore_i'] = k*e['cum_score_i']
             cum_score_f = eval_cum_score(traj)
-            cum_log_escore_f = k*cum_score_f
             score = cum_score_f - e['cum_score_i']
-            escore = np.exp(cum_log_escore_f - e['cum_log_escore_i'])
+            if telescopic_canceling:
+                cum_log_escore_f = k*cum_score_f
+                escore = np.exp(cum_log_escore_f - e['cum_log_escore_i'])
+            else:
+                cum_log_escore_f = e['cum_log_escore_i'] + k*score
+                escore = np.exp(k*score)
+
 
         else:
             if 'cum_score_i' not in e: # TODO: maybe this is not the best approach
                 e['cum_score_i'] = 0
                 e['cum_log_escore_i'] = 0
             score = eval_score(traj)
-            escore = np.exp(k*score) # the exponentiated score
             cum_score_f = e['cum_score_i'] + score
-            cum_log_escore_f = e['cum_log_escore_i'] + k*score # that is the same as + np.log(escore)
+            if telescopic_canceling:
+                cum_log_escore_f = k*cum_score_f
+                escore = np.exp(cum_log_escore_f - e['cum_log_escore_i'])
+            else:
+                escore = np.exp(k*score) # the exponentiated score
+                cum_log_escore_f = e['cum_log_escore_i'] + k*score # that is the same as + np.log(escore)
         
         escores.append(escore)
         e['score'] = score

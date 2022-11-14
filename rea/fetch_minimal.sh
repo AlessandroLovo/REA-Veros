@@ -19,6 +19,7 @@ fi
 if [[ ! -d $destination ]] ; then
     scp -r $folder "${destination%/*}"
     return 0
+    exit 0 # if return fails, we exit. If return succeeds this line won't be executed
 fi
 
 mkdir -p $destination
@@ -35,7 +36,7 @@ for n in {0..9999} ; do
     if [[ $ntraj == 0 ]] ; then
         scp -r $folder/$it $destination
         if [[ $? != 0 ]] ; then
-            echo "Reched last iteration"
+            echo "Reached last iteration"
             break
         fi
     else
