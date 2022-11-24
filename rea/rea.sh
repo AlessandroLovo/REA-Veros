@@ -18,7 +18,7 @@ mode='veros'
 # mode='demo'
 if [[ "$mode" == "veros" ]] ; then
     root_folder='../veros/__test__' # TODO: update it
-    dynamics_modules='../veros/veros_modules.sh' # script that loads the modules for the dynamics
+    dynamics_modules='../cluster/hpc/veros_modules.sh' # script that loads the modules for the dynamics
     cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
     dynamics_script='../veros/veros_batch_restart.sh'
     make_traj_script='../veros/make_traj.py'
@@ -27,7 +27,7 @@ if [[ "$mode" == "veros" ]] ; then
     msj=5 # max simultaneous jobs
 else
     root_folder='../demo/__test__'
-    dynamics_modules='../demo/dynamics_modules.sh' # script that loads the modules for the dynamics
+    dynamics_modules='../cluster/hpc/demo_modules.sh' # script that loads the modules for the dynamics
     cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
     dynamics_script='python ../demo/ou.py'
     make_traj_script='None'
@@ -37,8 +37,9 @@ fi
 cluster=false
 partition="aegir"
 account="ocean"
-python_modules='python_modules.sh' # script that loads the modules for python
+python_modules='../cluster/hpc/python_modules.sh' # script that loads the modules for python
 sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
+handle_modules=true
 
 ## telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
