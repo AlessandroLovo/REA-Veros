@@ -360,7 +360,7 @@ if ! $proceed ; then
     echo "Algorithm will be run with"
     echo "    NITER = $NITER"
     echo "    nens  = $nens"
-    echo "    t     = $t"
+    echo "    t     = $T"
     echo "    k     = $k"
     echo "Model = $model"
     echo "    dynamics_script = $dynamics_script"
