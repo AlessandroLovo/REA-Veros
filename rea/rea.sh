@@ -128,6 +128,10 @@ while [[ $# -gt 0 ]]; do
             shift # past argument
             shift # past value
             ;;
+        --no-modules) # disable loading and purging of modules
+            handle_modules=false
+            shift
+            ;;
         --python-modules) # script that loads the modules required for running python on the cluster
             python_modules="$2"
             shift
@@ -231,7 +235,7 @@ fi
 echo >> $arg_file
 
 # load modules for python
-if $cluster ; then
+if $cluster && $handle_modules ; then
     module purge
     . $python_modules
     module list
@@ -273,19 +277,23 @@ for n in $(seq 0 $NITER) ; do
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log
             if $cluster ; then
-                # load modules for running the dynamics
-                . $dynamics_modules
-                module list
+                if $handle_modules ; then
+                    # load modules for running the dynamics
+                    . $dynamics_modules
+                    module list
+                fi
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
                         $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
                 done
                 wait
-
-                # restore modules for python
-                module purge
-                . $python_modules
+                
+                if $handle_modules ; then
+                    # restore modules for python
+                    module purge
+                    . $python_modules
+                fi
 
             else
                 # propagate ensemble members in batches (if msj==nens there will be only one batch)
@@ -354,9 +362,11 @@ for n in $(seq 0 $NITER) ; do
             date >> $dyn_log
             echo "Starting dynamics" >> $dyn_log
             if $cluster ; then
-                # load modules for running the dynamics
-                . $dynamics_modules
-                module list
+                if $handle_modules ; then
+                    # load modules for running the dynamics
+                    . $dynamics_modules
+                    module list
+                fi
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
@@ -364,9 +374,11 @@ for n in $(seq 0 $NITER) ; do
                 done
                 wait
 
-                # restore modules for python
-                module purge
-                . $python_modules
+                if $handle_modules ; then
+                    # restore modules for python
+                    module purge
+                    . $python_modules
+                fi
 
             else
                 # propagate ensemble members in batches (if msj==nens there will be only one batch)
