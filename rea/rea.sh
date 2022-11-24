@@ -1,6 +1,15 @@
 #!/bin/bash
 
-########## Get arguments from command line ##########
+##### Define useful functions #####
+load_modules () {
+    if [[ ! -z $1 ]] ; then
+        module purge
+        . $1
+        module list
+    else
+        python log2telegram.py \""No module loading script provided: skipping"\" 30 $TARGS 
+    fi
+}
 
 ## default values for parameters
 NITER=15 # number of iterations of the algorithm
@@ -46,7 +55,7 @@ TBT='~/REAVbot.txt' # telegram bot token
 CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
 TLL=30 # telegram logging level
 
-
+########## Get arguments from command line ##########
 while [[ $# -gt 0 ]]; do
     case $1 in
         -i|--iterations) # number of iterations
@@ -116,7 +125,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --cluster) # run on a cluster
             cluster=true
-            shift
+            cluster_name="$2"
+            shift # past argument
+            shift # past value
             ;;
         -P|--partition) # cluster partition
             partition="$2"
@@ -229,16 +240,18 @@ echo "cluster : $cluster # whether the algorithm is run on a cluster">> $arg_fil
 if $cluster ; then
     echo "    partition : $partition" >> $arg_file
     echo "    account : $account" >> $arg_file
-    echo "    python modules loaded from : $python_modules" >> $arg_file
-    echo "    dynamics modules loaded from : $dynamics_modules" >> $arg_file
+    if $handle_modules ; then
+        echo "    python modules loaded from : $python_modules" >> $arg_file
+        echo "    dynamics modules loaded from : $dynamics_modules" >> $arg_file
+    else
+        echo "    No modules will be loaded or purged during this run" >> $arg_file
+    fi
 fi
 echo >> $arg_file
 
 # load modules for python
 if $cluster && $handle_modules ; then
-    module purge
-    . $python_modules
-    module list
+    load_modules $python_modules
 fi
 
 python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $folder"\" 45 $TARGS
@@ -279,8 +292,7 @@ for n in $(seq 0 $NITER) ; do
             if $cluster ; then
                 if $handle_modules ; then
                     # load modules for running the dynamics
-                    . $dynamics_modules
-                    module list
+                    load_modules $dynamics_modules
                 fi
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
@@ -291,8 +303,7 @@ for n in $(seq 0 $NITER) ; do
                 
                 if $handle_modules ; then
                     # restore modules for python
-                    module purge
-                    . $python_modules
+                    load_modules $python_modules
                 fi
 
             else
@@ -364,8 +375,7 @@ for n in $(seq 0 $NITER) ; do
             if $cluster ; then
                 if $handle_modules ; then
                     # load modules for running the dynamics
-                    . $dynamics_modules
-                    module list
+                    load_modules $dynamics_modules
                 fi
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
@@ -376,8 +386,7 @@ for n in $(seq 0 $NITER) ; do
 
                 if $handle_modules ; then
                     # restore modules for python
-                    module purge
-                    . $python_modules
+                    load_modules $python_modules
                 fi
 
             else
