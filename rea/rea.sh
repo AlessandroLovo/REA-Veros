@@ -387,6 +387,10 @@ sleep 15
 # Start of the actual algorithm #
 #################################
 
+echo
+echo "------Starting------"
+echo
+
 mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
 # log all parameters to a file
