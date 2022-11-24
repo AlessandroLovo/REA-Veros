@@ -270,6 +270,18 @@ case $model in
         ;;
 esac
 
+## check that the module-loading scripts actually exist
+if $cluster && $handle_modules ; then
+    for file in "$python_modules" "$dynamics_modules" ; do
+        if [[ ! -z ${file} ]] ; then
+            if [[ ! -f ${file} ]] ; then
+                echo "File not found: $1"
+                return 1
+            fi
+        fi
+    done
+fi
+
 ########## Actual script ##########
 
 ### preliminary operations ###
