@@ -27,29 +27,27 @@ set_default_demo () { # function that sets the common default arguments for the 
 }
 
 # ==============================================================================================
+# ==============================================================================================
+
+
+###################################
+# Set parameters of the algorithm #
+###################################
+
 
 ##### default values for parameters #####
 
-## generic parameters
-
+# parameters of the algorithm
 NITER=15 # number of iterations of the algorithm
 T=50 # timestep of the algorithm
 nens=20 # number of ensemble member
 k=2 # selection strenght parameter
-p="0" # prefix
 
+# generic parameters
 initial_ensemble_folder='' # if provided contains the properly named already propagated ensemble members in their first iteration
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 init_ensemble_script='' # if provided script for generating an ensemble from the single init file
-
-# cluster generic parameters
-cluster=false
-sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
-
-# telegram logging
-TBT='~/REAVbot.txt' # telegram bot token
-CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
-TLL=30 # telegram logging level
+p="0" # prefix for the run name
 
 # model specific parameters
 root_folder=''
@@ -59,13 +57,23 @@ cloning_script=''
 make_traj_script=''
 msj=''
 
+# cluster generic parameters
+cluster=false
+sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
+
 # cluster specific parameters
 partition=''
 account=''
 handle_modules=''
 python_modules=''
 
-########## Get arguments from command line ##########
+# telegram logging parameters
+TBT='~/REAVbot.txt' # telegram bot token
+CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
+TLL=30 # telegram logging level
+
+
+##### Get arguments from the command line #####
 while [[ $# -gt 0 ]]; do
     case $1 in
         -m|--model)
@@ -197,7 +205,9 @@ done
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to the first positional argument and so on
 
 
-#### set default values according to the cluster if they were not already provided ####
+## deal with more specific default settings
+
+# set default values according to the cluster if they were not already provided
 case $cluster_name in
     hpc)
         if [[ -z ${partition} ]] ; then
@@ -221,11 +231,11 @@ case $cluster_name in
         ;;
 esac
 
-#### set default values according to the model if they were not already provided ####
+# set default values according to the model if they were not already provided
 case $model in
     veros)
         if [[ -z ${root_folder} ]] ; then
-            root_folder='../veros/__test__' # TODO: update it
+            root_folder='../veros/__test__'
         fi
         if [[ -z ${dynamics_script} ]] ; then
             dynamics_script='../veros/veros_batch_restart.sh'
@@ -270,7 +280,7 @@ case $model in
         ;;
 esac
 
-## check that the module-loading scripts actually exist
+# check that the module-loading scripts actually exist
 if $cluster && $handle_modules ; then
     for file in "$python_modules" "$dynamics_modules" ; do
         if [[ ! -z ${file} ]] ; then
@@ -282,29 +292,32 @@ if $cluster && $handle_modules ; then
     done
 fi
 
-########## Actual script ##########
-
-### preliminary operations ###
-
 # set the proper number of maximum simultaneous jobs
 if [[ $msj == 0 ]] ; then
     msj=$nens
 fi
 
 # prepare the sbatch launching command
-if [[ ! -z ${partition} ]] ; then
-    sbatch_script="$sbatch_script --partition=$partition"
+if $cluster ; then
+    if [[ ! -z ${partition} ]] ; then
+        sbatch_script="$sbatch_script --partition=$partition"
+    fi
+
+    if [[ ! -z ${account} ]] ; then
+        sbatch_script="$sbatch_script --account=$account"
+    fi
 fi
 
-if [[ ! -z ${account} ]] ; then
-    sbatch_script="$sbatch_script --account=$account"
-fi
-
+# set the proper run folder and iteration number
 i0=0
-echo i0=$i0
-
 if [[ -z ${initial_ensemble_folder} ]] ; then
     folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+    if [[ ! -z ${init_file} ]] ; then
+        if [[ ! -f ${init_file} ]] ; then
+            echo "Init file not found: $init_file"
+            return 1
+        fi
+    fi
 else
     init_file=''
     folder="${initial_ensemble_folder%/i*}" # remove the iteration folder
@@ -312,9 +325,67 @@ else
     i0="${i0%/}" # remove the ending '/'
     i0=$((10#$i0 + 0)) # convert to base 10, properly getting rid of the leading zeros
 fi
-echo i0=$i0
 
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
+
+
+## echo a summary of all the arguments
+echo
+echo
+if [[ -z ${initial_ensemble_folder} ]] ; then
+    echo "Starting a new run in folder $folder"
+    if [[ -z ${init_file} ]] ; then
+        echo "    from scratch"
+    else
+        echo "    from $init_file"
+        if [[ ! -z ${init_ensemble_script} ]] ; then
+            echo "    using $init_ensemble_script"
+        fi
+    fi
+else
+    echo "Continuing run in folder $folder"
+    echo "    from iteration $i0"
+fi
+echo "Algorithm will be run with"
+echo "    NITER = $NITER"
+echo "    nens  = $nens"
+echo "    t     = $t"
+echo "    k     = $k"
+echo "Model = $model"
+echo "    dynamics_script = $dynamics_script"
+echo "    cloning_script = $cloning_script"
+echo "    make_traj_script = $make_traj_script"
+echo "Maximum simultaneous ensemble members: $msj"
+if $cluster ; then
+    echo "Running on cluster $cluster_name"
+    echo "    with sbatch directive:"
+    echo "        $sbatch_script"
+    if $handle_modules ; then
+        echo "    python_modules   : $python_modules"
+        echo "    dynamics_modules : $dynamics_modules"
+    else
+        echo "    without handling modules"
+    fi
+else
+    echo "Running on the local machine"
+fi
+echo
+echo "Telegram logging level: $TLL"
+echo
+echo
+
+echo "You have 15 seconds to stop the run if you disagree with the seetings"
+sleep 15
+
+
+
+# ==============================================================================================
+# ==============================================================================================
+
+
+#################################
+# Start of the actual algorithm #
+#################################
 
 mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
