@@ -7,6 +7,8 @@ if $a && $b ; then
     echo baluga
 fi
 
-if [[ ! -z $1 ]] ; then
-    echo first argument is $1
+u=12
+
+if [[ ! -z $u ]] ; then
+    echo first argument is $u
 fi

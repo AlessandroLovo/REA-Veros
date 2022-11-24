@@ -11,7 +11,27 @@ load_modules () {
     fi
 }
 
-## default values for parameters
+set_default_demo () { # function that sets the common default arguments for the demo python dynamics models 
+    if [[ -z ${dynamics_modules} ]] ; then
+        dynamics_modules="../cluster/$cluster_name/demo_modules.sh" # script that loads the modules for the dynamics
+    fi
+    if [[ -z ${cloning_script} ]] ; then
+        cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
+    fi
+    if [[ -z ${make_traj_script} ]] ; then
+        make_traj_script='None'
+    fi
+    if [[ -z ${msj} ]] ; then
+        msj=0 # max simultaneous jobs
+    fi
+}
+
+# ==============================================================================================
+
+##### default values for parameters #####
+
+## generic parameters
+
 NITER=15 # number of iterations of the algorithm
 T=50 # timestep of the algorithm
 nens=20 # number of ensemble member
@@ -22,46 +42,41 @@ initial_ensemble_folder='' # if provided contains the properly named already pro
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 init_ensemble_script='' # if provided script for generating an ensemble from the single init file
 
-# useful default arguments
-mode='veros'
-# mode='demo'
-if [[ "$mode" == "veros" ]] ; then
-    root_folder='../veros/__test__' # TODO: update it
-    dynamics_modules='../cluster/hpc/veros_modules.sh' # script that loads the modules for the dynamics
-    cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
-    dynamics_script='../veros/veros_batch_restart.sh'
-    make_traj_script='../veros/make_traj.py'
-    init_ensemble_script='../veros/make_ensemble.py'
-    T=100
-    msj=5 # max simultaneous jobs
-else
-    root_folder='../demo/__test__'
-    dynamics_modules='../cluster/hpc/demo_modules.sh' # script that loads the modules for the dynamics
-    cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
-    dynamics_script='python ../demo/ou.py'
-    make_traj_script='None'
-    msj=0 # max simultaneous jobs
-fi
-
+# cluster generic parameters
 cluster=false
-partition="aegir"
-account="ocean"
-python_modules='../cluster/hpc/python_modules.sh' # script that loads the modules for python
 sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
-handle_modules=true
 
-## telegram logging
+# telegram logging
 TBT='~/REAVbot.txt' # telegram bot token
 CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
 TLL=30 # telegram logging level
 
+# model specific parameters
+root_folder=''
+dynamics_script=''
+dynamics_modules=''
+cloning_script=''
+make_traj_script=''
+msj=''
+
+# cluster specific parameters
+partition=''
+account=''
+handle_modules=''
+python_modules=''
+
 ########## Get arguments from command line ##########
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -m|--model)
+            model="$2"
+            shift
+            shift
+            ;;
         -i|--iterations) # number of iterations
             NITER="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -d|--dynamics) # dynamics script
             dynamics_script="$2"
@@ -70,8 +85,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         -k|--k) # selection strength
             k="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         --cloning-script) # cloning script
             cloning_script="$2"
@@ -80,13 +95,13 @@ while [[ $# -gt 0 ]]; do
             ;;
         -t|--timestep) # resampling timestep
             T="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -e|--ensemble-size) # number of ensemble members
             nens="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
             make_traj_script="$2"
@@ -110,38 +125,38 @@ while [[ $# -gt 0 ]]; do
             ;;
         -p|--prefix) # prefix in naming the run folder
             p="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -r|--root|--root-folder) # parent of the run folder
             root_folder="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -j|--jobs) # maximum number of simultaneous ensemble members running
             msj="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         --cluster) # run on a cluster
             cluster=true
             cluster_name="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -P|--partition) # cluster partition
             partition="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -A|--account) # cluster account
             account="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         --no-modules) # disable loading and purging of modules
             handle_modules=false
-            shift
+            shift # past argument
             ;;
         --python-modules) # script that loads the modules required for running python on the cluster
             python_modules="$2"
@@ -155,18 +170,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         -b|--bot-token) # telegram bot authorization token
             TBT="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -c|--chat-id) # telegram chat ID to whom to send the logs
             CHAT_ID="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -l|--log-level) # telegram logging level
             TLL="$2"
-            shift # past argument
-            shift # past value
+            shift
+            shift
             ;;
         -*|--*)
             echo "Unknown option $1"
@@ -174,7 +189,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             POSITIONAL_ARGS+=("$1") # save positional arg
-            shift # past argument
+            shift
             ;;
     esac
 done
@@ -182,6 +197,78 @@ done
 set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to the first positional argument and so on
 
 
+#### set default values according to the cluster if they were not already provided ####
+case $cluster_name in
+    hpc)
+        if [[ -z ${partition} ]] ; then
+            partition="aegir"
+        fi
+        if [[ -z ${account} ]] ; then
+            account="ocean"
+        fi
+        if [[ -z ${handle_modules} ]] ; then
+            handle_modules=true
+        fi
+        ;;
+    psmn)
+        if [[ -z ${handle_modules} ]] ; then
+            handle_modules=false
+        fi
+        ;;
+    *)
+        echo "Unrecogniezed cluster option $cluster_name"
+        return 1
+        ;;
+esac
+
+#### set default values according to the model if they were not already provided ####
+case $model in
+    veros)
+        if [[ -z ${root_folder} ]] ; then
+            root_folder='../veros/__test__' # TODO: update it
+        fi
+        if [[ -z ${dynamics_script} ]] ; then
+            dynamics_script='../veros/veros_batch_restart.sh'
+        fi
+        if [[ -z ${dynamics_modules} ]] ; then
+            dynamics_modules="../cluster/$cluster_name/veros_modules.sh" # script that loads the modules for the dynamics
+        fi
+        if [[ -z ${cloning_script} ]] ; then
+            cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
+        fi
+        if [[ -z ${make_traj_script} ]] ; then
+            make_traj_script='../veros/make_traj.py'
+        fi
+        if [[ -z ${init_ensemble_script} ]] ; then
+            init_ensemble_script='../veros/make_ensemble.py'
+        fi
+        if [[ -z ${msj} ]] ; then
+            msj=5 # max simultaneous jobs
+        fi
+        ;;
+    ou|Ornstein-Uhlenbeck)
+        if [[ -z ${root_folder} ]] ; then
+            root_folder='../demo/__test__/ou/'
+        fi
+        if [[ -z ${dynamics_script} ]] ; then
+            dynamics_script='python ../demo/ou.py'
+        fi
+        set_default_demo
+        ;;
+    dw|Double-Well)
+        if [[ -z ${root_folder} ]] ; then
+            root_folder='../demo/__test__/dw/'
+        fi
+        if [[ -z ${dynamics_script} ]] ; then
+            dynamics_script='python ../demo/dw.py'
+        fi
+        set_default_demo
+        ;;
+    *)
+        echo "Unrecogniezed model option $model"
+        return 1
+        ;;
+esac
 
 ########## Actual script ##########
 
