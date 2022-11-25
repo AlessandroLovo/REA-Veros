@@ -251,6 +251,7 @@ while [[ $# -gt 0 ]]; do
         -*|--*)
             echo "Unknown option $1"
             return 1
+            exit 1
             ;;
         *)
             POSITIONAL_ARGS+=("$1") # save positional arg
@@ -288,6 +289,7 @@ case $cluster_name in
     *)
         echo "Unrecogniezed cluster option $cluster_name"
         return 1
+        exit 1
         ;;
 esac
 
@@ -342,6 +344,7 @@ case $model in
     *)
         echo "Unrecogniezed model option $model"
         return 1
+        exit 1
         ;;
 esac
 
@@ -352,6 +355,7 @@ if $cluster && $handle_modules ; then
             if [[ ! -f ${file} ]] ; then
                 echo "File not found: $1"
                 return 1
+                exit 1
             fi
         fi
     done
@@ -381,6 +385,7 @@ if [[ -z ${initial_ensemble_folder} ]] ; then
         if [[ ! -f ${init_file} ]] ; then
             echo "Init file not found: $init_file"
             return 1
+            exit 1
         fi
     fi
 else
@@ -578,6 +583,7 @@ for n in $(seq 0 $NITER) ; do
                 echo "Missing init file!!!"
                 python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
                 return 1
+                exit 1
             fi
         done
 
