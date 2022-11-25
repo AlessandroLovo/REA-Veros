@@ -284,7 +284,7 @@ case $cluster_name in
             directives="--constraint=v1"
         fi
         if [[ -z ${dynamics_directives} ]] ; then
-            dynamics_directives="--time=23:59:59"
+            dynamics_directives="--exclusive --time=23:59:59"
         fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=true
