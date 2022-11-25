@@ -27,6 +27,50 @@ set_default_demo () {
     fi
 }
 
+# run the dynamics for one timestep of the algorithm
+propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
+    date >> $dyn_log
+    echo "Starting dynamics" >> $dyn_log
+    if $cluster ; then
+        if $handle_modules ; then
+            load_modules $dynamics_modules # load modules for running the dynamics
+        fi
+
+        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do # 0-pad the number of the ensemble member
+                jobID=$((10#$ens % $msj)) # convert in base 10 and take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
+                $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $1 &
+        done
+        wait
+        
+        if $handle_modules ; then
+            load_modules $python_modules # restore modules for python
+        fi
+
+    else
+        # propagate ensemble members in batches (if msj==nens there will be only one batch)
+        last_e=0
+        batch=1
+        keep_going=true
+        while $keep_going ; do
+            if [[ $(($nens - $msj)) -gt $last_e ]] ; then
+                end_e=$(($last_e + $msj))
+            else
+                end_e=$nens
+                keep_going=false
+            fi
+
+            python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+            for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                $dynamics_script $T $it_folder/e$ens $1 &
+            done
+            wait
+            batch=$(($batch + 1))
+            last_e=$end_e
+        done
+    fi
+    echo "Dynamics completed" >> $dyn_log
+    date >> $dyn_log
+}
 
 # ==============================================================================================
 # ==============================================================================================
@@ -402,12 +446,16 @@ if ! $proceed ; then
 
     # ask for confirmation
     read -p "Proceed? (Y/n) " -n 1 -r
+    echo # go to new line
     if [[ $REPLY =~ ^[Y]$ ]] ; then
         proceed=true
     fi
 fi
 
 if ! $proceed ; then
+    echo
+    echo "------Aborting------"
+    echo
     return 0
     exit 0 # make sure the script exits if return did not work because the script was not sourced
 fi
@@ -495,49 +543,8 @@ for n in $(seq 0 $NITER) ; do
                 fi
             fi
 
-            date >> $dyn_log
-            echo "Starting dynamics" >> $dyn_log
-            if $cluster ; then
-                if $handle_modules ; then
-                    # load modules for running the dynamics
-                    load_modules $dynamics_modules
-                fi
-
-                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$((10#$ens % $msj))
-                        $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
-                done
-                wait
-                
-                if $handle_modules ; then
-                    # restore modules for python
-                    load_modules $python_modules
-                fi
-
-            else
-                # propagate ensemble members in batches (if msj==nens there will be only one batch)
-                last_e=0
-                batch=1
-                keep_going=true
-                while $keep_going ; do
-                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                        end_e=$(($last_e + $msj))
-                    else
-                        end_e=$nens
-                        keep_going=false
-                    fi
-
-                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens $init_file &
-                    done
-                    wait
-                    batch=$(($batch + 1))
-                    last_e=$end_e
-                done
-            fi
-            echo "Dynamics completed" >> $dyn_log
-            date >> $dyn_log
+            # run the dynamics with an init file (if provided)
+            propagate $init_file
         else
             echo
             python log2telegram.py \""Ensemble has already been propagated for this iteration"\" 25 $TARGS
@@ -578,49 +585,7 @@ for n in $(seq 0 $NITER) ; do
         if [[ $n != $NITER ]] ; then # do not propagate the last isteration
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
-            date >> $dyn_log
-            echo "Starting dynamics" >> $dyn_log
-            if $cluster ; then
-                if $handle_modules ; then
-                    # load modules for running the dynamics
-                    load_modules $dynamics_modules
-                fi
-
-                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$((10#$ens % $msj))
-                        $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
-                done
-                wait
-
-                if $handle_modules ; then
-                    # restore modules for python
-                    load_modules $python_modules
-                fi
-
-            else
-                # propagate ensemble members in batches (if msj==nens there will be only one batch)
-                last_e=0
-                batch=1
-                keep_going=true
-                while $keep_going ; do
-                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                        end_e=$(($last_e + $msj))
-                    else
-                        end_e=$nens
-                        keep_going=false
-                    fi
-
-                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens &
-                    done
-                    wait
-                    batch=$(($batch + 1))
-                    last_e=$end_e
-                done
-            fi
-            echo "Dynamics completed" >> $dyn_log
-            date >> $dyn_log
+            propagate
         fi
     fi
 done
