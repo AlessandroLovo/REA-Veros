@@ -11,7 +11,8 @@ load_modules () {
     fi
 }
 
-set_default_demo () { # function that sets the common default arguments for the demo python dynamics models 
+# function that sets the common default arguments for the demo python dynamics models 
+set_default_demo () {
     if [[ -z ${dynamics_modules} ]] ; then
         dynamics_modules="../cluster/$cluster_name/demo_modules.sh" # script that loads the modules for the dynamics
     fi
@@ -25,6 +26,7 @@ set_default_demo () { # function that sets the common default arguments for the 
         msj=0 # max simultaneous jobs
     fi
 }
+
 
 # ==============================================================================================
 # ==============================================================================================
@@ -65,6 +67,7 @@ sbatch_script="sbatch --wait --dependency=singleton" # script for launching the 
 # cluster specific parameters
 partition=''
 account=''
+dynamics_directives=''
 handle_modules=''
 python_modules=''
 
@@ -163,6 +166,11 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --dynamics-directives)
+            dynamics_directives="$2"
+            shift
+            shift
+            ;;
         --no-modules) # disable loading and purging of modules
             handle_modules=false
             shift # past argument
@@ -220,6 +228,9 @@ case $cluster_name in
         fi
         if [[ -z ${account} ]] ; then
             account="ocean"
+        fi
+        if [[ -z ${dynamics_directives} ]] ; then
+            dynamics_directives="--constraint=v1"
         fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=true
@@ -371,6 +382,10 @@ if ! $proceed ; then
         echo "Running on cluster $cluster_name"
         echo "    with sbatch directive:"
         echo "        $sbatch_script"
+        if [[ ! -z ${dynamics_directives} ]] ; then
+            echo "    with the extra directives for the dynamics:"
+            echo "        $dynamics_directives"
+        fi
         if $handle_modules ; then
             echo "    python_modules   : $python_modules"
             echo "    dynamics_modules : $dynamics_modules"
@@ -490,7 +505,7 @@ for n in $(seq 0 $NITER) ; do
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
-                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
+                        $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
                 done
                 wait
                 
@@ -573,7 +588,7 @@ for n in $(seq 0 $NITER) ; do
 
                 for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
                         jobID=$((10#$ens % $msj))
-                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
+                        $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
                 done
                 wait
 
