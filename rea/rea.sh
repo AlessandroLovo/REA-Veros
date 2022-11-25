@@ -1,6 +1,54 @@
 #!/bin/bash
 
 ##### Define useful functions #####
+summary () {
+    if [[ -z ${initial_ensemble_folder} ]] ; then
+        echo "Starting a new run in folder $folder"
+        if [[ -z ${init_file} ]] ; then
+            echo "    from scratch"
+        else
+            echo "    from $init_file"
+            if [[ ! -z ${init_ensemble_script} ]] ; then
+                echo "    creating the initial ensemble with $init_ensemble_script"
+            fi
+        fi
+    else
+        echo "Continuing run in folder $folder"
+        echo "    from iteration $i0"
+    fi
+    echo "Algorithm will be run with"
+    echo "    NITER = $NITER"
+    echo "    nens  = $nens"
+    echo "    t     = $T"
+    echo "    k     = $k"
+    echo "Model = $model"
+    echo "    dynamics_script = $dynamics_script"
+    echo "    cloning_script = $cloning_script"
+    echo "    make_traj_script = $make_traj_script"
+    echo "Maximum simultaneous ensemble members: $msj"
+    if $cluster ; then
+        echo "Running on cluster $cluster_name"
+        echo "    with sbatch directive:"
+        echo "        $sbatch_script"
+        if [[ ! -z ${dynamics_directives} ]] ; then
+            echo "    with the extra directives for the dynamics:"
+            echo "        $dynamics_directives"
+        fi
+        if $handle_modules ; then
+            echo "    python_modules   : $python_modules"
+            echo "    dynamics_modules : $dynamics_modules"
+        else
+            echo "    without handling modules"
+        fi
+    else
+        echo "Running on the local machine"
+    fi
+    echo
+    echo "Telegram logging level: $TLL"
+    echo
+    echo
+}
+
 load_modules () {
     if [[ ! -z $1 ]] ; then
         module purge
@@ -417,51 +465,7 @@ if ! $proceed ; then
     ## echo a summary of all the arguments
     echo
     echo
-    if [[ -z ${initial_ensemble_folder} ]] ; then
-        echo "Starting a new run in folder $folder"
-        if [[ -z ${init_file} ]] ; then
-            echo "    from scratch"
-        else
-            echo "    from $init_file"
-            if [[ ! -z ${init_ensemble_script} ]] ; then
-                echo "    using $init_ensemble_script"
-            fi
-        fi
-    else
-        echo "Continuing run in folder $folder"
-        echo "    from iteration $i0"
-    fi
-    echo "Algorithm will be run with"
-    echo "    NITER = $NITER"
-    echo "    nens  = $nens"
-    echo "    t     = $T"
-    echo "    k     = $k"
-    echo "Model = $model"
-    echo "    dynamics_script = $dynamics_script"
-    echo "    cloning_script = $cloning_script"
-    echo "    make_traj_script = $make_traj_script"
-    echo "Maximum simultaneous ensemble members: $msj"
-    if $cluster ; then
-        echo "Running on cluster $cluster_name"
-        echo "    with sbatch directive:"
-        echo "        $sbatch_script"
-        if [[ ! -z ${dynamics_directives} ]] ; then
-            echo "    with the extra directives for the dynamics:"
-            echo "        $dynamics_directives"
-        fi
-        if $handle_modules ; then
-            echo "    python_modules   : $python_modules"
-            echo "    dynamics_modules : $dynamics_modules"
-        else
-            echo "    without handling modules"
-        fi
-    else
-        echo "Running on the local machine"
-    fi
-    echo
-    echo "Telegram logging level: $TLL"
-    echo
-    echo
+    summary
 
     # ask for confirmation
     read -p "Proceed? (Y/n) " -n 1 -r
@@ -496,33 +500,7 @@ mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
-echo "# parameters of the algorithm " >> $arg_file
-echo "NITER : $NITER # number of iterations" >> $arg_file
-echo "T : $T # resampling timestep" >> $arg_file
-echo "nens : $nens # number of ensemble members" >> $arg_file
-echo "k : $k # selection strenght" >> $arg_file
-echo >> $arg_file
-echo "# Dynamics ">> $arg_file
-echo "dynamics_script : $dynamics_script # script that runs the dynamics" >> $arg_file
-echo "cloning_script : $cloning_script # script that clones trajectories, possibly perturbing initial conditions">> $arg_file
-echo "make_traj_script : $make_traj_script # script to postprocess the output of the dynamics and compute the trajectory of the observable needed for the score" >> $arg_file
-echo >> $arg_file
-echo "# Execution parameters that do not affect the result" >> $arg_file
-echo "prefix : $p # prefix for this folder name" >> $arg_file
-echo "jobs : $msj # maximum number of simultaneous jobs" >> $arg_file
-echo >> $arg_file
-echo "cluster : $cluster # whether the algorithm is run on a cluster">> $arg_file
-if $cluster ; then
-    echo "    partition : $partition" >> $arg_file
-    echo "    account : $account" >> $arg_file
-    if $handle_modules ; then
-        echo "    python modules loaded from : $python_modules" >> $arg_file
-        echo "    dynamics modules loaded from : $dynamics_modules" >> $arg_file
-    else
-        echo "    No modules will be loaded or purged during this run" >> $arg_file
-    fi
-fi
-echo >> $arg_file
+summary >> $arg_file
 
 # load modules for python
 if $cluster && $handle_modules ; then
