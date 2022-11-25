@@ -275,7 +275,7 @@ case $cluster_name in
             account="ocean"
         fi
         if [[ -z ${dynamics_directives} ]] ; then
-            dynamics_directives="--constraint=v1"
+            dynamics_directives="--constraint=v1 --time=23:59:59"
         fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=true
