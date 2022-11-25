@@ -111,6 +111,7 @@ sbatch_script="sbatch --wait --dependency=singleton" # script for launching the 
 # cluster specific parameters
 partition=''
 account=''
+directives=''
 dynamics_directives=''
 handle_modules=''
 python_modules=''
@@ -210,7 +211,12 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
-        --dynamics-directives)
+        --directives) # general extra sbatch directives
+            directives="$2"
+            shift
+            shift
+            ;;
+        --dynamics-directives) # sbatch directives specific only for the dynamics script
             dynamics_directives="$2"
             shift
             shift
@@ -274,8 +280,11 @@ case $cluster_name in
         if [[ -z ${account} ]] ; then
             account="ocean"
         fi
+        if [[ -z ${directives} ]] ; then
+            directives="--constraint=v1"
+        fi
         if [[ -z ${dynamics_directives} ]] ; then
-            dynamics_directives="--constraint=v1 --time=23:59:59"
+            dynamics_directives="--time=23:59:59"
         fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=true
@@ -328,7 +337,7 @@ case $model in
             root_folder='../demo/__test__/ou/'
         fi
         if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='python ../demo/ou.py'
+            dynamics_script='../demo/sou.sh'
         fi
         set_default_demo
         ;;
@@ -337,7 +346,7 @@ case $model in
             root_folder='../demo/__test__/dw/'
         fi
         if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='python ../demo/dw.py'
+            dynamics_script='../demo/sdw.sh'
         fi
         set_default_demo
         ;;
@@ -374,6 +383,11 @@ if $cluster ; then
 
     if [[ ! -z ${account} ]] ; then
         sbatch_script="$sbatch_script --account=$account"
+    fi
+
+    # add the extra directives
+    if [[ ! -z ${directives} ]] ; then
+        sbatch_script="$sbatch_script $directives"
     fi
 fi
 
