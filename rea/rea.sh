@@ -1,6 +1,54 @@
 #!/bin/bash
 
 ##### Define useful functions #####
+summary () {
+    if [[ -z ${initial_ensemble_folder} ]] ; then
+        echo "Starting a new run in folder $folder"
+        if [[ -z ${init_file} ]] ; then
+            echo "    from scratch"
+        else
+            echo "    from $init_file"
+            if [[ ! -z ${init_ensemble_script} ]] ; then
+                echo "    creating the initial ensemble with $init_ensemble_script"
+            fi
+        fi
+    else
+        echo "Continuing run in folder $folder"
+        echo "    from iteration $i0"
+    fi
+    echo "Algorithm will be run with"
+    echo "    NITER = $NITER"
+    echo "    nens  = $nens"
+    echo "    t     = $T"
+    echo "    k     = $k"
+    echo "Model = $model"
+    echo "    dynamics_script = $dynamics_script"
+    echo "    cloning_script = $cloning_script"
+    echo "    make_traj_script = $make_traj_script"
+    echo "Maximum simultaneous ensemble members: $msj"
+    if $cluster ; then
+        echo "Running on cluster $cluster_name"
+        echo "    with sbatch directive:"
+        echo "        $sbatch_script"
+        if [[ ! -z ${dynamics_directives} ]] ; then
+            echo "    with the extra directives for the dynamics:"
+            echo "        $dynamics_directives"
+        fi
+        if $handle_modules ; then
+            echo "    python_modules   : $python_modules"
+            echo "    dynamics_modules : $dynamics_modules"
+        else
+            echo "    without handling modules"
+        fi
+    else
+        echo "Running on the local machine"
+    fi
+    echo
+    echo "Telegram logging level: $TLL"
+    echo
+    echo
+}
+
 load_modules () {
     if [[ ! -z $1 ]] ; then
         module purge
@@ -11,7 +59,8 @@ load_modules () {
     fi
 }
 
-set_default_demo () { # function that sets the common default arguments for the demo python dynamics models 
+# function that sets the common default arguments for the demo python dynamics models 
+set_default_demo () {
     if [[ -z ${dynamics_modules} ]] ; then
         dynamics_modules="../cluster/$cluster_name/demo_modules.sh" # script that loads the modules for the dynamics
     fi
@@ -24,6 +73,51 @@ set_default_demo () { # function that sets the common default arguments for the 
     if [[ -z ${msj} ]] ; then
         msj=0 # max simultaneous jobs
     fi
+}
+
+# run the dynamics for one timestep of the algorithm
+propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
+    date >> $dyn_log
+    echo "Starting dynamics" >> $dyn_log
+    if $cluster ; then
+        if $handle_modules ; then
+            load_modules $dynamics_modules # load modules for running the dynamics
+        fi
+
+        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do # 0-pad the number of the ensemble member
+                jobID=$((10#$ens % $msj)) # convert in base 10 and take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
+                $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $1 &
+        done
+        wait
+        
+        if $handle_modules ; then
+            load_modules $python_modules # restore modules for python
+        fi
+
+    else
+        # propagate ensemble members in batches (if msj==nens there will be only one batch)
+        last_e=0
+        batch=1
+        keep_going=true
+        while $keep_going ; do
+            if [[ $(($nens - $msj)) -gt $last_e ]] ; then
+                end_e=$(($last_e + $msj))
+            else
+                end_e=$nens
+                keep_going=false
+            fi
+
+            python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+            for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                $dynamics_script $T $it_folder/e$ens $1 &
+            done
+            wait
+            batch=$(($batch + 1))
+            last_e=$end_e
+        done
+    fi
+    echo "Dynamics completed" >> $dyn_log
+    date >> $dyn_log
 }
 
 # ==============================================================================================
@@ -44,6 +138,7 @@ nens=20 # number of ensemble member
 k=2 # selection strenght parameter
 
 # generic parameters
+proceed=false # whether to start the run withoud asking for confirmation
 initial_ensemble_folder='' # if provided contains the properly named already propagated ensemble members in their first iteration
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 init_ensemble_script='' # if provided script for generating an ensemble from the single init file
@@ -64,6 +159,8 @@ sbatch_script="sbatch --wait --dependency=singleton" # script for launching the 
 # cluster specific parameters
 partition=''
 account=''
+directives=''
+dynamics_directives=''
 handle_modules=''
 python_modules=''
 
@@ -162,6 +259,16 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --directives) # general extra sbatch directives
+            directives="$2"
+            shift
+            shift
+            ;;
+        --dynamics-directives) # sbatch directives specific only for the dynamics script
+            dynamics_directives="$2"
+            shift
+            shift
+            ;;
         --no-modules) # disable loading and purging of modules
             handle_modules=false
             shift # past argument
@@ -191,9 +298,14 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --skip) # skip summary of parameters and confirmation
+            proceed=true
+            shift
+            ;;
         -*|--*)
             echo "Unknown option $1"
             return 1
+            exit 1
             ;;
         *)
             POSITIONAL_ARGS+=("$1") # save positional arg
@@ -216,6 +328,12 @@ case $cluster_name in
         if [[ -z ${account} ]] ; then
             account="ocean"
         fi
+        if [[ -z ${directives} ]] ; then
+            directives="--constraint=v1"
+        fi
+        if [[ -z ${dynamics_directives} ]] ; then
+            dynamics_directives="--exclusive --time=23:59:59"
+        fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=true
         fi
@@ -228,8 +346,14 @@ case $cluster_name in
     *)
         echo "Unrecogniezed cluster option $cluster_name"
         return 1
+        exit 1
         ;;
 esac
+
+# set default value for python modules
+if [[ -z ${python_modules} ]] ; then
+    python_modules="../cluster/$cluster_name/python_modules.sh"
+fi
 
 # set default values according to the model if they were not already provided
 case $model in
@@ -261,7 +385,7 @@ case $model in
             root_folder='../demo/__test__/ou/'
         fi
         if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='python ../demo/ou.py'
+            dynamics_script='../demo/sou.sh'
         fi
         set_default_demo
         ;;
@@ -270,13 +394,14 @@ case $model in
             root_folder='../demo/__test__/dw/'
         fi
         if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='python ../demo/dw.py'
+            dynamics_script='../demo/sdw.sh'
         fi
         set_default_demo
         ;;
     *)
         echo "Unrecogniezed model option $model"
         return 1
+        exit 1
         ;;
 esac
 
@@ -287,6 +412,7 @@ if $cluster && $handle_modules ; then
             if [[ ! -f ${file} ]] ; then
                 echo "File not found: $1"
                 return 1
+                exit 1
             fi
         fi
     done
@@ -306,6 +432,11 @@ if $cluster ; then
     if [[ ! -z ${account} ]] ; then
         sbatch_script="$sbatch_script --account=$account"
     fi
+
+    # add the extra directives
+    if [[ ! -z ${directives} ]] ; then
+        sbatch_script="$sbatch_script $directives"
+    fi
 fi
 
 # set the proper run folder and iteration number
@@ -316,6 +447,7 @@ if [[ -z ${initial_ensemble_folder} ]] ; then
         if [[ ! -f ${init_file} ]] ; then
             echo "Init file not found: $init_file"
             return 1
+            exit 1
         fi
     fi
 else
@@ -329,54 +461,27 @@ fi
 TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
 
 
-## echo a summary of all the arguments
-echo
-echo
-if [[ -z ${initial_ensemble_folder} ]] ; then
-    echo "Starting a new run in folder $folder"
-    if [[ -z ${init_file} ]] ; then
-        echo "    from scratch"
-    else
-        echo "    from $init_file"
-        if [[ ! -z ${init_ensemble_script} ]] ; then
-            echo "    using $init_ensemble_script"
-        fi
-    fi
-else
-    echo "Continuing run in folder $folder"
-    echo "    from iteration $i0"
-fi
-echo "Algorithm will be run with"
-echo "    NITER = $NITER"
-echo "    nens  = $nens"
-echo "    t     = $t"
-echo "    k     = $k"
-echo "Model = $model"
-echo "    dynamics_script = $dynamics_script"
-echo "    cloning_script = $cloning_script"
-echo "    make_traj_script = $make_traj_script"
-echo "Maximum simultaneous ensemble members: $msj"
-if $cluster ; then
-    echo "Running on cluster $cluster_name"
-    echo "    with sbatch directive:"
-    echo "        $sbatch_script"
-    if $handle_modules ; then
-        echo "    python_modules   : $python_modules"
-        echo "    dynamics_modules : $dynamics_modules"
-    else
-        echo "    without handling modules"
-    fi
-else
-    echo "Running on the local machine"
-fi
-echo
-echo "Telegram logging level: $TLL"
-echo
-echo
+if ! $proceed ; then
+    ## echo a summary of all the arguments
+    echo
+    echo
+    summary
 
-echo "You have 15 seconds to stop the run if you disagree with the seetings"
-sleep 15
+    # ask for confirmation
+    read -p "Proceed? (Y/n) " -n 1 -r
+    echo # go to new line
+    if [[ $REPLY =~ ^[Y]$ ]] ; then
+        proceed=true
+    fi
+fi
 
+if ! $proceed ; then
+    echo
+    echo "------Aborting------"
+    echo
+    return 0
+    exit 0 # make sure the script exits if return did not work because the script was not sourced
+fi
 
 
 # ==============================================================================================
@@ -387,37 +492,15 @@ sleep 15
 # Start of the actual algorithm #
 #################################
 
+echo
+echo "------Starting------"
+echo
+
 mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
-echo "# parameters of the algorithm " >> $arg_file
-echo "NITER : $NITER # number of iterations" >> $arg_file
-echo "T : $T # resampling timestep" >> $arg_file
-echo "nens : $nens # number of ensemble members" >> $arg_file
-echo "k : $k # selection strenght" >> $arg_file
-echo >> $arg_file
-echo "# Dynamics ">> $arg_file
-echo "dynamics_script : $dynamics_script # script that runs the dynamics" >> $arg_file
-echo "cloning_script : $cloning_script # script that clones trajectories, possibly perturbing initial conditions">> $arg_file
-echo "make_traj_script : $make_traj_script # script to postprocess the output of the dynamics and compute the trajectory of the observable needed for the score" >> $arg_file
-echo >> $arg_file
-echo "# Execution parameters that do not affect the result" >> $arg_file
-echo "prefix : $p # prefix for this folder name" >> $arg_file
-echo "jobs : $msj # maximum number of simultaneous jobs" >> $arg_file
-echo >> $arg_file
-echo "cluster : $cluster # whether the algorithm is run on a cluster">> $arg_file
-if $cluster ; then
-    echo "    partition : $partition" >> $arg_file
-    echo "    account : $account" >> $arg_file
-    if $handle_modules ; then
-        echo "    python modules loaded from : $python_modules" >> $arg_file
-        echo "    dynamics modules loaded from : $dynamics_modules" >> $arg_file
-    else
-        echo "    No modules will be loaded or purged during this run" >> $arg_file
-    fi
-fi
-echo >> $arg_file
+summary >> $arg_file
 
 # load modules for python
 if $cluster && $handle_modules ; then
@@ -457,49 +540,8 @@ for n in $(seq 0 $NITER) ; do
                 fi
             fi
 
-            date >> $dyn_log
-            echo "Starting dynamics" >> $dyn_log
-            if $cluster ; then
-                if $handle_modules ; then
-                    # load modules for running the dynamics
-                    load_modules $dynamics_modules
-                fi
-
-                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$((10#$ens % $msj))
-                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $init_file &
-                done
-                wait
-                
-                if $handle_modules ; then
-                    # restore modules for python
-                    load_modules $python_modules
-                fi
-
-            else
-                # propagate ensemble members in batches (if msj==nens there will be only one batch)
-                last_e=0
-                batch=1
-                keep_going=true
-                while $keep_going ; do
-                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                        end_e=$(($last_e + $msj))
-                    else
-                        end_e=$nens
-                        keep_going=false
-                    fi
-
-                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens $init_file &
-                    done
-                    wait
-                    batch=$(($batch + 1))
-                    last_e=$end_e
-                done
-            fi
-            echo "Dynamics completed" >> $dyn_log
-            date >> $dyn_log
+            # run the dynamics with an init file (if provided)
+            propagate $init_file
         else
             echo
             python log2telegram.py \""Ensemble has already been propagated for this iteration"\" 25 $TARGS
@@ -533,6 +575,7 @@ for n in $(seq 0 $NITER) ; do
                 echo "Missing init file!!!"
                 python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
                 return 1
+                exit 1
             fi
         done
 
@@ -540,49 +583,7 @@ for n in $(seq 0 $NITER) ; do
         if [[ $n != $NITER ]] ; then # do not propagate the last isteration
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
-            date >> $dyn_log
-            echo "Starting dynamics" >> $dyn_log
-            if $cluster ; then
-                if $handle_modules ; then
-                    # load modules for running the dynamics
-                    load_modules $dynamics_modules
-                fi
-
-                for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
-                        jobID=$((10#$ens % $msj))
-                        $sbatch_script -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens &
-                done
-                wait
-
-                if $handle_modules ; then
-                    # restore modules for python
-                    load_modules $python_modules
-                fi
-
-            else
-                # propagate ensemble members in batches (if msj==nens there will be only one batch)
-                last_e=0
-                batch=1
-                keep_going=true
-                while $keep_going ; do
-                    if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                        end_e=$(($last_e + $msj))
-                    else
-                        end_e=$nens
-                        keep_going=false
-                    fi
-
-                    python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
-                    for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                        $dynamics_script $T $it_folder/e$ens &
-                    done
-                    wait
-                    batch=$(($batch + 1))
-                    last_e=$end_e
-                done
-            fi
-            echo "Dynamics completed" >> $dyn_log
-            date >> $dyn_log
+            propagate
         fi
     fi
 done

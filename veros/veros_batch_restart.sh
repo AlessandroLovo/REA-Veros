@@ -1,12 +1,9 @@
 #!/bin/bash -l
 #
-#SBATCH --time=23:59:59
-#SBATCH --constraint=v1
 #SBATCH --nodes=1
 #SBATCH --ntasks=12
 #SBATCH --cpus-per-task=1
 #SBATCH --threads-per-core=1
-#SBATCH --exclusive
 
 # new architecture:
 # $1: time in years
