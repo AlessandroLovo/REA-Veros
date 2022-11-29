@@ -143,6 +143,7 @@ initial_ensemble_folder='' # if provided contains the properly named already pro
 init_file='' # if provided single init file to initialize all ensemble members at the first iteration
 init_ensemble_script='' # if provided script for generating an ensemble from the single init file
 p="0" # prefix for the run name
+name='' # name of the run
 
 # model specific parameters
 root_folder=''
@@ -230,6 +231,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -p|--prefix) # prefix in naming the run folder
             p="$2"
+            shift
+            shift
+            ;;
+        -n|--name) # name of the run folder: overrides prefix
+            name="$2"
             shift
             shift
             ;;
@@ -442,7 +448,14 @@ fi
 # set the proper run folder and iteration number
 i0=0
 if [[ -z ${initial_ensemble_folder} ]] ; then
-    folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+    # set folder name
+    if [[ -z ${name} ]] ; then
+        folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+    else
+        folder="$root_folder/$name"
+    fi
+    
+    # check if the provided init file exists
     if [[ ! -z ${init_file} ]] ; then
         if [[ ! -f ${init_file} ]] ; then
             echo "Init file not found: $init_file"
