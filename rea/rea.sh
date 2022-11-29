@@ -454,6 +454,13 @@ if [[ -z ${initial_ensemble_folder} ]] ; then
     else
         folder="$root_folder/$name"
     fi
+
+    # check if the run already exists
+    if [[ -d ${folder} ]] ; then
+        echo "$folder exists! Please choose a new name. If you want to continue a run, please use the -E option"
+        return 1
+        exit 1
+    fi
     
     # check if the provided init file exists
     if [[ ! -z ${init_file} ]] ; then
