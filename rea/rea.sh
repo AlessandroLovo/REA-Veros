@@ -96,9 +96,9 @@ propagate () { # accepts as only argument the optional init file. If not provide
 
     else
         # propagate ensemble members in batches (if msj==nens there will be only one batch)
-        last_e=0
-        batch=1
-        keep_going=true
+        local last_e=0
+        local batch=1
+        local keep_going=true
         while $keep_going ; do
             if [[ $(($nens - $msj)) -gt $last_e ]] ; then
                 end_e=$(($last_e + $msj))
@@ -109,7 +109,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
 
             python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
             for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
-                $dynamics_script $T $it_folder/e$ens $1 &
+                $dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &
             done
             wait
             batch=$(($batch + 1))
@@ -118,6 +118,39 @@ propagate () { # accepts as only argument the optional init file. If not provide
     fi
     echo "Dynamics completed" >> $dyn_log
     date >> $dyn_log
+}
+
+detect_errors () {
+    errors=false
+    local fol=$1 # folder in which to look for error files
+    local nl=''
+    local f=''
+    for f in $fol/*.err ; do
+        nl=$(wc -m <$f)
+        if [[ $nl -gt 0 ]] ; then # error file contains something
+            if ! $errors ; then
+                python log2telegram.py \""Detected errors in $f"\" 40 $TARGS
+                errors=true
+            else
+                echo "Errors also in $f"
+            fi
+        else
+            rm $f
+        fi
+    done
+}
+
+log_failure () {
+    python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
+}
+
+check () {
+    detect_errors $it_folder
+    if $errors ; then
+        log_failure
+        return 1
+    fi
+    return 0
 }
 
 # ==============================================================================================
@@ -144,6 +177,7 @@ init_file='' # if provided single init file to initialize all ensemble members a
 init_ensemble_script='' # if provided script for generating an ensemble from the single init file
 p="0" # prefix for the run name
 name='' # name of the run
+errors=false
 
 # model specific parameters
 root_folder=''
@@ -562,6 +596,14 @@ for n in $(seq 0 $NITER) ; do
 
             # run the dynamics with an init file (if provided)
             propagate $init_file
+            
+            # check that everything went smoothly
+            check
+            if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+                return 1
+                exit 1
+            fi
+
         else
             echo
             python log2telegram.py \""Ensemble has already been propagated for this iteration"\" 25 $TARGS
@@ -577,7 +619,14 @@ for n in $(seq 0 $NITER) ; do
         if $cluster ; then
             $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
         else
-            python compute_scores.py $k $prev_it_folder $make_traj_script #$TARGS
+            python compute_scores.py $k $prev_it_folder $make_traj_script >$prev_it_folder/cs.out 2>$prev_it_folder/cs.err
+        fi
+
+        # check that everything went smoothly
+        check
+        if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+            return 1
+            exit 1
         fi
 
         # selection step, i.e. resampling
@@ -585,15 +634,23 @@ for n in $(seq 0 $NITER) ; do
         if $cluster ; then
             $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
         else
-            python resample.py $it_folder $prev_it_folder $cloning_script #$TARGS
+            python resample.py $it_folder $prev_it_folder $cloning_script >$it_folder/resample.out 2>$it_folder/resample.err
         fi
         # perturbation of initial conditions is done in the cloning script
 
+        # check that everything went smoothly
+        check
+        if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+            return 1
+            exit 1
+        fi
+
+        # TODO: this is probably superflous now
         # check that the all init files have been created
         for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do
             if  ! compgen -G "$it_folder/e$ens-init*" > /dev/null; then
                 echo "Missing init file!!!"
-                python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
+                log_failure
                 return 1
                 exit 1
             fi
@@ -604,6 +661,13 @@ for n in $(seq 0 $NITER) ; do
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
             propagate
+
+            # check that everything went smoothly
+            check
+            if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+                return 1
+                exit 1
+            fi
         fi
     fi
 done
