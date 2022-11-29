@@ -78,7 +78,7 @@ set_default_demo () {
 # run the dynamics for one timestep of the algorithm
 propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
     date >> $dyn_log
-    echo "Starting dynamics" >> $dyn_log
+    echo "$HOSTNAME: Starting dynamics" >> $dyn_log
     if $cluster ; then
         if $handle_modules ; then
             load_modules $dynamics_modules # load modules for running the dynamics
