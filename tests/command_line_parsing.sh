@@ -7,6 +7,14 @@ T=10
 nens=20
 k=2
 
+# while [[ $# -gt 0 ]]; do
+#     echo $1
+#     POSITIONAL_ARGS+=("$1")
+#     shift
+# done
+
+# set -- "${POSITIONAL_ARGS[@]}"
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         -i|--iterations)
@@ -48,7 +56,7 @@ echo "nens  = $nens"
 echo "k     = $k"
 
 echo "Positional arguments received: "
-for p in ${POSITIONAL_ARGS[@]} ; do
+for p in "${POSITIONAL_ARGS[@]}" ; do
     echo $p
 done
 
