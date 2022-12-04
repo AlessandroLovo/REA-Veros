@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ -z "$MY_VAR" ]] ; then
-    echo "Variable is blank"
-else
-    echo "Vriable is $MY_VAR"
-fi
+MY_VAR=''
+
+. set_var.sh
+
+echo $MY_VAR
