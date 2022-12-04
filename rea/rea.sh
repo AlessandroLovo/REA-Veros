@@ -400,7 +400,7 @@ case $cluster_name in
             srun_mpi=false
         fi
         if [[ -z ${handle_modules} ]] ; then
-            handle_modules=false
+            handle_modules=true
         fi
         ;;
     *)
