@@ -40,6 +40,11 @@ summary () {
         else
             echo "    without handling modules"
         fi
+        if $srun_mpi ; then
+            echo "    using srun --mpi for parallelization"
+        else
+            echo "    using mpirun for parallelization"
+        fi
     else
         echo "Running on the local machine"
     fi
@@ -192,6 +197,7 @@ cluster=false
 sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
 
 # cluster specific parameters
+srun_mpi=''
 partition=''
 account=''
 directives=''
@@ -289,6 +295,14 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --srun-mpi)
+            srun_mpi=true
+            shift
+            ;;
+        --no-srun-mpi)
+            srun_mpi=false
+            shift
+            ;;
         -P|--partition) # cluster partition
             partition="$2"
             shift
@@ -362,6 +376,9 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to t
 # set default values according to the cluster if they were not already provided
 case $cluster_name in
     hpc)
+        if [[ -z ${srun_mpi} ]] ; then
+            srun_mpi=true
+        fi
         if [[ -z ${partition} ]] ; then
             partition="aegir"
         fi
@@ -379,6 +396,9 @@ case $cluster_name in
         fi
         ;;
     psmn)
+        if [[ -z ${srun_mpi} ]] ; then
+            srun_mpi=false
+        fi
         if [[ -z ${handle_modules} ]] ; then
             handle_modules=false
         fi
@@ -463,7 +483,7 @@ if [[ $msj == 0 ]] ; then
     msj=$nens
 fi
 
-# prepare the sbatch launching command
+# prepare the sbatch launching command and set mpi env var
 if $cluster ; then
     if [[ ! -z ${partition} ]] ; then
         sbatch_script="$sbatch_script --partition=$partition"
@@ -477,6 +497,14 @@ if $cluster ; then
     if [[ ! -z ${directives} ]] ; then
         sbatch_script="$sbatch_script $directives"
     fi
+
+    # export MPI env var
+    if [[ -z ${srun_mpi} ]] ; then
+        echo "srun_mpi must be set!"
+        return 1
+        exit 1
+    fi
+    export SRUN_MPI_ENABLED=$srun_mpi
 fi
 
 # set the proper run folder and iteration number

@@ -12,6 +12,16 @@
 
 ###export OMP_NUM_THREADS=1
 
+if [[ -z "$SRUN_MPI_ENABLED" ]] ; then
+    echo "SRUN_MPI_ENABLED env variable is not set" >&2
+    return 1
+    exit 1
+elif $SRUN_MPI_ENABLED ; then
+    veros_mpi_cmd="srun --mpi=mpi2 --"
+else
+    veros_mpi_cmd="mpirun -np 12"
+fi
+
 if [[ -z $3 ]] ; then
     init_file="$2-init.h5"
 else
@@ -20,7 +30,7 @@ fi
 
 T=$(($1*31104000))
 
-veros resubmit -i $2 -n 1 -l $T -c "srun --mpi=pmi2 -- python ../veros/global_flexible.py -b numpy -v debug -n 6 2 -s restart_input_filename $init_file" 
+veros resubmit -i $2 -n 1 -l $T -c "$veros_mpi_cmd python ../veros/global_flexible.py -b numpy -v debug -n 6 2 -s restart_input_filename $init_file" 
 
 #--callback "sbatch veros_batch.sh"
 # 3110400000 -> 100 years
