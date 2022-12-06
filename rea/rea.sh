@@ -1,6 +1,164 @@
 #!/bin/bash
 
 ##### Define useful functions #####
+parse_command_line () { # you should give it "$@"
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -m|--model)
+                model="$2"
+                shift
+                shift
+                ;;
+            -i|--iterations) # number of iterations
+                NITER="$2"
+                shift
+                shift
+                ;;
+            -d|--dynamics) # dynamics script
+                dynamics_script="$2"
+                shift
+                shift
+                ;;
+            -k|--k) # selection strength
+                k="$2"
+                shift
+                shift
+                ;;
+            --cloning-script) # cloning script
+                cloning_script="$2"
+                shift
+                shift
+                ;;
+            -t|--timestep) # resampling timestep
+                T="$2"
+                shift
+                shift
+                ;;
+            -e|--ensemble-size) # number of ensemble members
+                nens="$2"
+                shift
+                shift
+                ;;
+            --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
+                make_traj_script="$2"
+                shift
+                shift
+                ;;
+            -E|--initial-ensemble) # folder where the initial ensemble is, either fully propagated or only with the init files
+                initial_ensemble_folder="$2"
+                shift
+                shift
+                ;;
+            -I|--init-file) # common init file for the first iteration
+                init_file="$2"
+                shift
+                shift
+                ;;
+            --init-ensemble-script) # script for creating an ensemble from a single init file
+                init_ensemble_script="$2"
+                shift
+                shift
+                ;;
+            -p|--prefix) # prefix in naming the run folder
+                p="$2"
+                shift
+                shift
+                ;;
+            -n|--name) # name of the run folder: overrides prefix
+                name="$2"
+                shift
+                shift
+                ;;
+            -r|--root|--root-folder) # parent of the run folder
+                root_folder="$2"
+                shift
+                shift
+                ;;
+            -j|--jobs) # maximum number of simultaneous ensemble members running
+                msj="$2"
+                shift
+                shift
+                ;;
+            --cluster) # run on a cluster
+                cluster=true
+                cluster_name="$2"
+                shift
+                shift
+                ;;
+            --srun-mpi)
+                srun_mpi=true
+                shift
+                ;;
+            --no-srun-mpi)
+                srun_mpi=false
+                shift
+                ;;
+            -P|--partition) # cluster partition
+                partition="$2"
+                shift
+                shift
+                ;;
+            -A|--account) # cluster account
+                account="$2"
+                shift
+                shift
+                ;;
+            --directives) # general extra sbatch directives
+                directives="$2"
+                shift
+                shift
+                ;;
+            --dynamics-directives) # sbatch directives specific only for the dynamics script
+                dynamics_directives="$2"
+                shift
+                shift
+                ;;
+            --no-modules) # disable loading and purging of modules
+                handle_modules=false
+                shift # past argument
+                ;;
+            --python-modules) # script that loads the modules required for running python on the cluster
+                python_modules="$2"
+                shift
+                shift
+                ;;
+            --dynamics-modules) # script that loads the modules required for running the dynamics on the cluster
+                dynamics_modules="$2"
+                shift
+                shift
+                ;;
+            -b|--bot-token) # telegram bot authorization token
+                TBT="$2"
+                shift
+                shift
+                ;;
+            -c|--chat-id) # telegram chat ID to whom to send the logs
+                CHAT_ID="$2"
+                shift
+                shift
+                ;;
+            -l|--log-level) # telegram logging level
+                TLL="$2"
+                shift
+                shift
+                ;;
+            --skip) # skip summary of parameters and confirmation
+                proceed=true
+                shift
+                ;;
+            -*|--*)
+                echo "Unknown option $1"
+                return 1
+                exit 1
+                ;;
+            *)
+                POSITIONAL_ARGS+=("$1") # save positional arg
+                shift
+                ;;
+        esac
+    done
+}
+
 summary () {
     if [[ -z ${initial_ensemble_folder} ]] ; then
         echo "Starting a new run in folder $folder"
@@ -61,22 +219,6 @@ load_modules () {
         module list
     else
         python log2telegram.py \""No module loading script provided: skipping"\" 30 $TARGS 
-    fi
-}
-
-# function that sets the common default arguments for the demo python dynamics models 
-set_default_demo () {
-    if [[ -z ${dynamics_modules} ]] ; then
-        dynamics_modules="../cluster/$cluster_name/demo_modules.sh" # script that loads the modules for the dynamics
-    fi
-    if [[ -z ${cloning_script} ]] ; then
-        cloning_script='../demo/clone.sh' # script that clones a trajectory, eventually perturbing initial conditions
-    fi
-    if [[ -z ${make_traj_script} ]] ; then
-        make_traj_script='None'
-    fi
-    if [[ -z ${msj} ]] ; then
-        msj=0 # max simultaneous jobs
     fi
 }
 
@@ -167,7 +309,7 @@ check () { # takes as input the folder in which to check that everything is fine
 ###################################
 
 
-##### default values for parameters #####
+##### hardcoded default values for parameters #####
 
 # parameters of the algorithm
 NITER=15 # number of iterations of the algorithm
@@ -185,6 +327,8 @@ name='' # name of the run
 errors=false
 
 # model specific parameters
+model=''
+model_dir=''
 root_folder=''
 dynamics_script=''
 dynamics_modules=''
@@ -194,6 +338,7 @@ msj=''
 
 # cluster generic parameters
 cluster=false
+cluster_dir=''
 sbatch_script="sbatch --wait --dependency=singleton" # script for launching the jobs
 
 # cluster specific parameters
@@ -202,7 +347,7 @@ partition=''
 account=''
 directives=''
 dynamics_directives=''
-handle_modules=''
+handle_modules=true
 python_modules=''
 
 # telegram logging parameters
@@ -212,258 +357,49 @@ TLL=30 # telegram logging level
 
 
 ##### Get arguments from the command line #####
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -m|--model)
-            model="$2"
-            shift
-            shift
-            ;;
-        -i|--iterations) # number of iterations
-            NITER="$2"
-            shift
-            shift
-            ;;
-        -d|--dynamics) # dynamics script
-            dynamics_script="$2"
-            shift
-            shift
-            ;;
-        -k|--k) # selection strength
-            k="$2"
-            shift
-            shift
-            ;;
-        --cloning-script) # cloning script
-            cloning_script="$2"
-            shift
-            shift
-            ;;
-        -t|--timestep) # resampling timestep
-            T="$2"
-            shift
-            shift
-            ;;
-        -e|--ensemble-size) # number of ensemble members
-            nens="$2"
-            shift
-            shift
-            ;;
-        --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
-            make_traj_script="$2"
-            shift
-            shift
-            ;;
-        -E|--initial-ensemble) # folder where the initial ensemble is, either fully propagated or only with the init files
-            initial_ensemble_folder="$2"
-            shift
-            shift
-            ;;
-        -I|--init-file) # common init file for the first iteration
-            init_file="$2"
-            shift
-            shift
-            ;;
-        --init-ensemble-script) # script for creating an ensemble from a single init file
-            init_ensemble_script="$2"
-            shift
-            shift
-            ;;
-        -p|--prefix) # prefix in naming the run folder
-            p="$2"
-            shift
-            shift
-            ;;
-        -n|--name) # name of the run folder: overrides prefix
-            name="$2"
-            shift
-            shift
-            ;;
-        -r|--root|--root-folder) # parent of the run folder
-            root_folder="$2"
-            shift
-            shift
-            ;;
-        -j|--jobs) # maximum number of simultaneous ensemble members running
-            msj="$2"
-            shift
-            shift
-            ;;
-        --cluster) # run on a cluster
-            cluster=true
-            cluster_name="$2"
-            shift
-            shift
-            ;;
-        --srun-mpi)
-            srun_mpi=true
-            shift
-            ;;
-        --no-srun-mpi)
-            srun_mpi=false
-            shift
-            ;;
-        -P|--partition) # cluster partition
-            partition="$2"
-            shift
-            shift
-            ;;
-        -A|--account) # cluster account
-            account="$2"
-            shift
-            shift
-            ;;
-        --directives) # general extra sbatch directives
-            directives="$2"
-            shift
-            shift
-            ;;
-        --dynamics-directives) # sbatch directives specific only for the dynamics script
-            dynamics_directives="$2"
-            shift
-            shift
-            ;;
-        --no-modules) # disable loading and purging of modules
-            handle_modules=false
-            shift # past argument
-            ;;
-        --python-modules) # script that loads the modules required for running python on the cluster
-            python_modules="$2"
-            shift
-            shift
-            ;;
-        --dynamics-modules) # script that loads the modules required for running the dynamics on the cluster
-            dynamics_modules="$2"
-            shift
-            shift
-            ;;
-        -b|--bot-token) # telegram bot authorization token
-            TBT="$2"
-            shift
-            shift
-            ;;
-        -c|--chat-id) # telegram chat ID to whom to send the logs
-            CHAT_ID="$2"
-            shift
-            shift
-            ;;
-        -l|--log-level) # telegram logging level
-            TLL="$2"
-            shift
-            shift
-            ;;
-        --skip) # skip summary of parameters and confirmation
-            proceed=true
-            shift
-            ;;
-        -*|--*)
-            echo "Unknown option $1"
-            return 1
-            exit 1
-            ;;
-        *)
-            POSITIONAL_ARGS+=("$1") # save positional arg
-            shift
-            ;;
-    esac
-done
-
-set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters so $1 refers to the first positional argument and so on
+parse_command_line "$@"
 
 
-## deal with more specific default settings
+## now we got information about the cluster and the model, so we can set the proper model- and cluster- specific defaults
 
-# set default values according to the cluster if they were not already provided
-case $cluster_name in
-    hpc)
-        if [[ -z ${srun_mpi} ]] ; then
-            srun_mpi=true
-        fi
-        if [[ -z ${partition} ]] ; then
-            partition="aegir"
-        fi
-        if [[ -z ${account} ]] ; then
-            account="ocean"
-        fi
-        if [[ -z ${directives} ]] ; then
-            directives="--constraint=v1"
-        fi
-        if [[ -z ${dynamics_directives} ]] ; then
-            dynamics_directives="--exclusive --time=23:59:59"
-        fi
-        if [[ -z ${handle_modules} ]] ; then
-            handle_modules=true
-        fi
-        ;;
-    psmn)
-        if [[ -z ${srun_mpi} ]] ; then
-            srun_mpi=false
-        fi
-        if [[ -z ${handle_modules} ]] ; then
-            handle_modules=true
-        fi
-        ;;
-    *)
+# set default values according to the cluster
+if $cluster ; then
+    cluster_dir="../clusters/$cluster_name"
+    if [[ -d $cluster_dir ]] ; then
+        . "$cluster_dir/defaults.sh"
+    else
         echo "Unrecogniezed cluster option $cluster_name"
         return 1
         exit 1
-        ;;
-esac
-
-# set default value for python modules
-if [[ -z ${python_modules} ]] ; then
-    python_modules="../cluster/$cluster_name/python_modules.sh"
+    fi
+    # set default value for python modules
+    python_modules="$cluster_dir/modules/python.sh"
 fi
 
-# set default values according to the model if they were not already provided
-case $model in
-    veros)
-        if [[ -z ${root_folder} ]] ; then
-            root_folder='../veros/__test__'
-        fi
-        if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='../veros/veros_batch_restart.sh'
-        fi
-        if [[ -z ${dynamics_modules} ]] ; then
-            dynamics_modules="../cluster/$cluster_name/veros_modules.sh" # script that loads the modules for the dynamics
-        fi
-        if [[ -z ${cloning_script} ]] ; then
-            cloning_script='../veros/perturb_ic.py' # script that clones a trajectory, eventually perturbing initial conditions
-        fi
-        if [[ -z ${make_traj_script} ]] ; then
-            make_traj_script='../veros/make_traj.py'
-        fi
-        if [[ -z ${init_ensemble_script} ]] ; then
-            init_ensemble_script='../veros/make_ensemble.py'
-        fi
-        if [[ -z ${msj} ]] ; then
-            msj=5 # max simultaneous jobs
-        fi
-        ;;
-    ou|Ornstein-Uhlenbeck)
-        if [[ -z ${root_folder} ]] ; then
-            root_folder='../demo/__test__/ou/'
-        fi
-        if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='../demo/sou.sh'
-        fi
-        set_default_demo
-        ;;
-    dw|Double-Well)
-        if [[ -z ${root_folder} ]] ; then
-            root_folder='../demo/__test__/dw/'
-        fi
-        if [[ -z ${dynamics_script} ]] ; then
-            dynamics_script='../demo/sdw.sh'
-        fi
-        set_default_demo
-        ;;
-    *)
-        echo "Unrecogniezed model option $model"
-        return 1
-        exit 1
-        ;;
-esac
+# set default values according to the model
+if [[ -z ${model} ]] ; then
+    echo "You must provide a model name"
+    return 1
+    exit 1
+fi
+model_dir="../$model"
+if [[ -d $model_dir ]] ; then
+    . "$model_dir/defaults.sh"
+    root_folder="$model_dir/__test__"
+    if $cluster && $handle_modules ; then
+        dynamics_modules="$cluster_dir/modules/$model.sh"
+    fi
+else
+    echo "No such directory $model_dir"
+    return 1
+    exit 1
+fi
+
+## parse the command line again to override the defaults
+parse_command_line "$@"
+
+
+### finalize the arguments of the algorithm ###
 
 # check that the module-loading scripts actually exist
 if $cluster && $handle_modules ; then
@@ -483,7 +419,7 @@ if [[ $msj == 0 ]] ; then
     msj=$nens
 fi
 
-# prepare the sbatch launching command and set mpi env var
+# prepare the sbatch launching command and set mpi envirnoment variable
 if $cluster ; then
     if [[ ! -z ${partition} ]] ; then
         sbatch_script="$sbatch_script --partition=$partition"
