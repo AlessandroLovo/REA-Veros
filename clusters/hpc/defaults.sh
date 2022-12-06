@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 srun_mpi=true
 partition="aegir"
 account="ocean"
