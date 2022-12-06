@@ -12,7 +12,7 @@
 
 ###export OMP_NUM_THREADS=1
 
-script_dir=$(dirname $0)
+script_dir=$(dirname ${BASH_SOURCE[0]})
 
 if [[ -z "$SRUN_MPI_ENABLED" ]] ; then
     echo "SRUN_MPI_ENABLED env variable is not set" >&2

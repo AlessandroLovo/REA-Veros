@@ -1,6 +1,6 @@
 #!/bin/bash
 
-script_dir=$(dirname $0)
+script_dir=$(dirname ${BASH_SOURCE[0]})
 
 dynamics_script="$script_dir/veros_batch_restart.sh"
 cloning_script="$script_dir/perturb_ic.py" # script that clones a trajectory, eventually perturbing initial conditions
