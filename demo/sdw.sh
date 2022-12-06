@@ -3,4 +3,6 @@
 #SBATCH --time=00:00:10
 #SBATCH --nodes=1
 
-python ../demo/dw.py "$@"
+script_dir=$(dirname $0)
+
+python $script_dir/dw.py "$@"
