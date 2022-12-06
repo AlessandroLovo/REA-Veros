@@ -125,7 +125,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
     date >> $dyn_log
 }
 
-detect_errors () {
+detect_errors () { # takes as input the folder that will contain *.err files
     errors=false
     local fol=$1 # folder in which to look for error files
     local nl=''
@@ -149,8 +149,8 @@ log_failure () {
     python log2telegram.py \""$HOSTNAME:\\n\\nRUN FAILED"\" 50 $TARGS
 }
 
-check () {
-    detect_errors $it_folder
+check () { # takes as input the folder in which to check that everything is fine
+    detect_errors $1
     if $errors ; then
         log_failure
         return 1
@@ -626,7 +626,7 @@ for n in $(seq 0 $NITER) ; do
             propagate $init_file
             
             # check that everything went smoothly
-            check
+            check $it_folder
             if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
                 return 1
                 exit 1
@@ -651,7 +651,7 @@ for n in $(seq 0 $NITER) ; do
         fi
 
         # check that everything went smoothly
-        check
+        check $prev_it_folder
         if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
             return 1
             exit 1
@@ -667,7 +667,7 @@ for n in $(seq 0 $NITER) ; do
         # perturbation of initial conditions is done in the cloning script
 
         # check that everything went smoothly
-        check
+        check $it_folder
         if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
             return 1
             exit 1
@@ -691,7 +691,7 @@ for n in $(seq 0 $NITER) ; do
             propagate
 
             # check that everything went smoothly
-            check
+            check $it_folder
             if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
                 return 1
                 exit 1
