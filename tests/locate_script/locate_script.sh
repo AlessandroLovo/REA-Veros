@@ -1,7 +1,8 @@
 #!/bin/bash
 
-d=$(dirname $0)
+d=$(dirname ${BASH_SOURCE[0]})
 
-echo locate_script: $0 $d
+echo locate_script: ${BASH_SOURCE}
+echo $d
 
 echo received argument $1
