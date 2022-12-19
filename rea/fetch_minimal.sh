@@ -5,6 +5,12 @@ folder="$1"
 folder="${folder%/}"
 run_name="${folder##*/}"
 
+if [[ $run_name != *minimal ]] ; then
+    echo
+    echo "WARNING: You are trying to scp a non minimal run: this could take very long"
+    echo
+fi
+
 if [[ -z $2 ]] ; then
     destination='.'
 else
