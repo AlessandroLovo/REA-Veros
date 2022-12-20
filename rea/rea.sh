@@ -159,6 +159,55 @@ parse_command_line () { # you should give it "$@"
     done
 }
 
+usage () {
+echo "Usage: source this script from its directory:
+
+    . rea.sh [options]
+
+Positional arguments are ignored. The options are the following (the ones enclosed in [] are optional)
+
+    -m|--model                  name of the folder with the model for the dynamics.
+                                This folder has to be on the same level as the 'rea' directory
+                                If the model folder contains a 'defaults.sh' script, it will be sourced,
+                                setting default values for some of the following options
+    -i|--iterations             number of iterations of the algorithm
+    -k|--k                      selection strenght
+    -t|--timestep               timestep of the algorithm
+    -e|--ensemble-size          number of ensemble members
+
+    [-E|--initial-ensemble]     folder containing the initial ensemble, in particular init files for each ensemble member
+    [-I|--init-file]            single init file from which to generate the ensemble
+    [--init-ensemble-script]    script for generating an ensemble from a single init file
+
+    [-p|--prefix]               prefix for the run name
+    [-n|--name]                 full run name (overrides prefix)
+    [-r|--root|--root-folder]   parent of the run folder
+
+    [-d|--dynamics]             script for running the dynamics
+    [--cloning-script]          script for cloning trajectories
+    [--make-traj-script]        script for creating the trajectory of the observable used for computing the scores
+    
+    [-j|--jobs]                 maximum number of simultaneously running ensemble members
+    [--cluster]                 if provided, name of the cluster on which to run. It must be also a folder inside the clusters directory
+    [--srun-mpi]                Use srun for mpi
+    [--no-srun-mpi]             Use mpirun for mpi
+    [-P|--partition]            partition in which to run
+    [-A|--account]              user account on the cluster
+    [--directives]              sbatch directives for every submitted job, enclose it in inverted commas
+    [--dynamics-directives]     sbatch directives applied only to jobs running the dynamics
+    [--no-modules]              do not handle modules
+    [--python-modules]          script that loads modules for python
+    [--dynamics-modules]        script that loads modules for the dynamics
+    
+    [-b|--bot-token]            telegram bot token or file containing it
+    [-c|--chat-id]              telegram chat id to which to send the logging messages
+    [-l|--log-level]            telegram logging level
+    
+    [--skip]                    start the run without asking for confirmation
+    
+    "
+}
+
 summary () {
     if [[ -z ${initial_ensemble_folder} ]] ; then
         echo "Starting a new run in folder $folder"
@@ -302,6 +351,14 @@ check () { # takes as input the folder in which to check that everything is fine
 
 # ==============================================================================================
 # ==============================================================================================
+
+
+## Check if no arguments were provided and thus print usage
+if [[ $# == 0 ]] ; then
+    usage
+    return 0
+    exit 0
+fi
 
 
 ###################################
