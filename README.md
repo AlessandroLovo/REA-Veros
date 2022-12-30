@@ -138,6 +138,10 @@ Inside folder `qwyn` you will put all your scripts for running the model, but in
 
     See as example `veros/make_ensemble.py`
 
+5. (optional): `defaults.sh`: a script that sets default values for the environment variables used by `rea.sh`. If the same option is provided when running `rea.sh`, this one will override the one set by `defaults.sh`.
+
+    See as an example `veros/defaults.sh`
+
 
 ### Setting up a new cluster
 
@@ -149,6 +153,6 @@ Inside this newly created directory put
     1. `python.sh`: script that loads the modules necessary for running python
     2. for every model you want to run, a script `<model_name>.sh` that loads the modules for running that model
 
-2. (optional) `defaults.sh`: script that sets default values for the environment variables used by `rea.sh`. If you then provide a different value as option when you run `rea.sh`, this one will override the default one set by `defaults.sh`
+2. (optional) `defaults.sh`: script that sets cluster specific default values for the environment variables used by `rea.sh`. As for the model defaults, If you then provide a different value as option when you run `rea.sh`, this one will override the default one set by `defaults.sh`.
 
 As an example look at folder `clusters/hpc` and its content.
