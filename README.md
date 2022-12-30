@@ -20,6 +20,49 @@ The main script is `rea/rea.sh` and is the one coordinating everything: it suppo
 . rea.sh [options]
 ```
 
+Where the options are:
+
+```
+-m|--model                  name of the folder with the model for the dynamics.
+                            This folder has to be on the same level as the 'rea' directory
+                            If the model folder contains a 'defaults.sh' script, it will be sourced,
+                            setting default values for some of the following options
+-i|--iterations             number of iterations of the algorithm
+-k|--k                      selection strenght
+-t|--timestep               timestep of the algorithm
+-e|--ensemble-size          number of ensemble members
+
+[-E|--initial-ensemble]     folder containing the initial ensemble, in particular init files for each ensemble member
+[-I|--init-file]            single init file from which to generate the ensemble
+[--init-ensemble-script]    script for generating an ensemble from a single init file
+
+[-p|--prefix]               prefix for the run name
+[-n|--name]                 full run name (overrides prefix)
+[-r|--root|--root-folder]   parent of the run folder
+
+[-d|--dynamics]             script for running the dynamics
+[--cloning-script]          script for cloning trajectories
+[--make-traj-script]        script for creating the trajectory of the observable used for computing the scores
+
+[-j|--jobs]                 maximum number of simultaneously running ensemble members
+[--cluster]                 if provided, name of the cluster on which to run. It must be also a folder inside the clusters directory
+[--srun-mpi]                Use srun for mpi
+[--no-srun-mpi]             Use mpirun for mpi
+[-P|--partition]            partition in which to run
+[-A|--account]              user account on the cluster
+[--directives]              sbatch directives for every submitted job, enclose it in inverted commas
+[--dynamics-directives]     sbatch directives applied only to jobs running the dynamics
+[--no-modules]              do not handle modules
+[--python-modules]          script that loads modules for python
+[--dynamics-modules]        script that loads modules for the dynamics
+
+[-b|--bot-token]            telegram bot token or file containing it
+[-c|--chat-id]              telegram chat id to which to send the logging messages
+[-l|--log-level]            telegram logging level
+
+[--skip]                    start the run without asking for confirmation
+```
+
 Run the script without any option to see visualize all possible options and their explanation.
 
 Pseudocode:
