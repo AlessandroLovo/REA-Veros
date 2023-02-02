@@ -372,7 +372,11 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
         #else:
         #    forc_val = 0.00000042 + ampl*count + ampl*t_diff/t_ramp*(1. - np.heaviside(t_diff/t_ramp -1.,0)) + ampl*np.heaviside(t_diff/t_ramp -1.,0)
             #vs.forc_salt_surface[:] -= vs.maskFrrampup*(ampl*count + ampl*t_diff/t_ramp*(1. - np.heaviside(t_diff/t_ramp -1.,0)) + ampl*np.heaviside(t_diff/t_ramp -1.,0))
+        
+        
         forc_val = 0.00000082
+        # forc_val = 0.0000008375
+        
         #print(t_diff,count, forc_val)
         vs.forc_salt_surface[:] -= vs.maskFrrampup*forc_val
 
