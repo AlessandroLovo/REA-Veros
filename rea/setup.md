@@ -14,7 +14,7 @@ and activate it
 
 Then install the necessary packages
 
-```conda install -c conda-forge xarray scipy h5py```
+```conda install -c conda-forge xarray scipy h5py h5netcdf```
 
 and also the one for logging to telegram
 
