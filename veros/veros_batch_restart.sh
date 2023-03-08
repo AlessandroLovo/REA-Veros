@@ -2,8 +2,9 @@
 #
 #SBATCH --nodes=1
 #SBATCH --ntasks=12
-#SBATCH --cpus-per-task=1
-#SBATCH --threads-per-core=1
+# The two following directives have been moved into the defaults of clusters psmn and hpc as lorenz does not support cpu binding
+##SBATCH --cpus-per-task=1
+##SBATCH --threads-per-core=1
 
 # new architecture:
 # $1: time in years
