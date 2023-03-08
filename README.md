@@ -159,4 +159,4 @@ Inside this newly created directory put
 
 As an example look at folder `clusters/psmn` and its content.
 
-To see how to set up the environments for the veros model and the rare event algorithm look respectively at [](veros/setup.md) and [](rea/setup.md)
+To see how to set up the environments for the veros model and the rare event algorithm look respectively at [setup-veros-env](veros/setup.md) and [setup-rea-env](rea/setup.md)
