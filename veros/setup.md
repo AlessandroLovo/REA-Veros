@@ -5,7 +5,9 @@ In this file we show how to properly setup an environment for running veros
 The first thing you need to do is clone the proper version of veros from the github [repo](https://github.com/team-ocean/veros).
 In this repo we work with version **0.2.3**
 
-```git clone https://github.com/team-ocean/veros.git -b v0.2.3```
+```
+git clone https://github.com/team-ocean/veros.git -b v0.2.3
+```
 
 that will create the folder named `veros`
 
@@ -14,29 +16,41 @@ that will create the folder named `veros`
 
 Start by creating a new conda environment with python <= 3.9, here we use 3.8
 
-```conda create -n veros-0.2.3 python=3.8```
+```
+conda create -n veros-0.2.3 python=3.8
+```
 
 and activate it
 
-```conda activate veros-0.2.3```
+```
+conda activate veros-0.2.3
+```
 
 Then install the veros model by running
 
-```pip install -e path/to/veros```
+```
+pip install -e path/to/veros
+```
 
 As a suggestion, before doing this you can move the `veros` folder inside your conda env folder `.../envs/veros-0.2.3`
 
 Then you'll need to remove the `h5py` package as it was installed without `mpi` support.
 
-```pip uninstall h5py`
+```
+pip uninstall h5py
+```
 
 Then install it again with mpi support
 
-```conda install -c conda-forge "h5py>=2.9=mpi*"```
+```
+conda install -c conda-forge "h5py>=2.9=mpi*"
+```
 
 And finally add the `petsc` package
 
-```conda install -c conda-forge petsc petsc4py```
+```
+conda install -c conda-forge petsc petsc4py
+```
 
 
 ### Update the `veros.sh` file in your clusters directory
