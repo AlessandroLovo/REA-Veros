@@ -20,7 +20,7 @@ The main script is `rea/rea.sh` and is the one coordinating everything: it suppo
 . rea.sh [options]
 ```
 
-Where the options are:
+where the options are:
 
 ```
 -m|--model                  name of the folder with the model for the dynamics.
@@ -63,7 +63,7 @@ Where the options are:
 [--skip]                    start the run without asking for confirmation
 ```
 
-Run the script without any option to see visualize all possible options and their explanation.
+Run the script without any option to visualize all possible options and their explanation.
 
 Pseudocode:
 
@@ -155,4 +155,8 @@ Inside this newly created directory put
 
 2. (optional) `defaults.sh`: script that sets cluster specific default values for the environment variables used by `rea.sh`. As for the model defaults, If you then provide a different value as option when you run `rea.sh`, this one will override the default one set by `defaults.sh`.
 
-As an example look at folder `clusters/hpc` and its content.
+3. (optional) `init.sh`: Script for setting up the cluster when you log in. This is just for yourself, and it won't be used by the algorithm at any point.
+
+As an example look at folder `clusters/psmn` and its content.
+
+To see how to set up the environments for the veros model and the rare event algorithm look respectively at [](veros/setup.md) and [](rea/setup.md)
