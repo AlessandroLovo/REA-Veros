@@ -24,11 +24,11 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     equatorial_grid_spacing_factor = 0.66
     polar_grid_spacing_factor = None
 
-    lm  = np.load('landMask.npy')
-    pc_re = np.load('PCs_rescaled.npy')
-    eof_re = lm*np.load('EOFs_rescaled.npy')
-    rho_re = np.load('yw_rho.npy')
-    sig_re = np.load('yw_sigma.npy')    
+    lm  = np.load(f'{BASE_PATH}/landMask.npy')
+    pc_re = np.load(f'{BASE_PATH}/PCs_rescaled.npy')
+    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_rescaled.npy')
+    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy')
+    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy')    
     dim_re, n_pc_re = np.shape(pc_re)
     index_re = [1, 1, 168, 60, 1, 1, 1, 1, 1, 4, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 240, 1, 2, 1, 1, 1, 1, 1, 1, 1] # automate? 
     pc_lag_re = np.zeros([n_pc_re,np.amax(index_re)])
@@ -131,7 +131,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
                 comm=rs.mpi_comm,
             )
 
-        with h5netcdf.File('forcing_1deg_global_hosing.nc', 'r', **kwargs) as forcing_file:
+        with h5netcdf.File(f'{BASE_PATH}/forcing_1deg_global_hosing.nc', 'r', **kwargs) as forcing_file:
 
             var_obj = forcing_file.variables[var]
             return np.array(var_obj[idx].astype(str(var_obj.dtype))).T
