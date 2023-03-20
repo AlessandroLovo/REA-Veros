@@ -404,7 +404,9 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
         #forc_val = 0.00000043 + ampl*t_diff/t_ramp*(1. - np.heaviside(t_diff/t_ramp -1.,0)) + ampl*np.heaviside(t_diff/t_ramp -1.,0)
         
         ### fixed value freshwater forcing
-        forc_val = 0.00000083
+        # forc_val = 0.00000083
+        forc_val = 0.00000082
+
         print(forc_val)
         vs.forc_salt_surface[:] -= vs.maskFrrampup*forc_val
 
