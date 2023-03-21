@@ -17,7 +17,7 @@ dynamics_script="./dyn.sh"
 
 nens=10
 msj=2
-epj=2
+epj=3
 batch_launch_template="batch_launch_template.sh"
 check_every="1m"
 
@@ -45,9 +45,10 @@ propagate () {
         echo "" >> $batch_launch_file
 
         # submit job    
-        $sbatch_script $dynamics_directives $batch_launch_file
+        $sbatch_script $dynamics_directives -o $it_folder/b$batch.out -e $it_folder/b$batch.err $batch_launch_file
 
         # check if we can submit another job by looking at the queue
+        sleep $check_every # give time to update the queue
         while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
             sleep $check_every
         done
