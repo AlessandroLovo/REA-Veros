@@ -63,6 +63,10 @@ propagate () {
     done
 }
 
+if [[ ! -d $it_folder ]] ; then
+    mkdir $it_folder
+fi
+
 propagate
 
 echo "DONE!"
