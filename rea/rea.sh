@@ -320,6 +320,9 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 fi
 
                 # check if we can submit another job by looking at the queue
+                if [[ $batch -gt 1 ]] ; then
+                    sleep $check_every # wait for queue to update
+                fi
                 while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
                     sleep $check_every
                 done
