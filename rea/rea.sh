@@ -74,8 +74,23 @@ parse_command_line () { # you should give it "$@"
                 shift
                 shift
                 ;;
-            -j|--jobs) # maximum number of simultaneous ensemble members running
+            -j|--jobs) # maximum number of simultaneous ensemble jobs running
                 msj="$2"
+                shift
+                shift
+                ;;
+            -J|--members-per-job)
+                epj="$2"
+                shift
+                shift
+                ;;
+            -C|--check-queue-every)
+                check_every="$2"
+                shift
+                shift
+                ;;
+            --batch-launch-template)
+                batch_launch_template="$2"
                 shift
                 shift
                 ;;
@@ -187,7 +202,14 @@ Positional arguments are ignored. The options are the following (the ones enclos
     [--cloning-script]          script for cloning trajectories
     [--make-traj-script]        script for creating the trajectory of the observable used for computing the scores
     
-    [-j|--jobs]                 maximum number of simultaneously running ensemble members
+    [-j|--jobs]                 maximum number of simultaneously running jobs members
+    [-J|--members-per-job]      maximum number of ensemble members for each job (default 1).
+
+                                THE FOLLOWING TWO ARE USED ONLY IF MORE THAN 1 ENSEMBLE MEMBER PER JOB AND YOU ARE RUNNING ON A CLUSTER
+    [-C|--check-queue-every]    every how much to check the queue to see if we can launch a new job. Default 1m
+    [--batch-launch-template]   what file to use as a template for launching multiple ensemble members per job.
+                                Basically it's a file with some sbatch directives.
+            
     [--cluster]                 if provided, name of the cluster on which to run. It must be also a folder inside the clusters directory
     [--srun-mpi]                Use srun for mpi
     [--no-srun-mpi]             Use mpirun for mpi
@@ -232,7 +254,7 @@ summary () {
     echo "    dynamics_script = $dynamics_script"
     echo "    cloning_script = $cloning_script"
     echo "    make_traj_script = $make_traj_script"
-    echo "Maximum simultaneous ensemble members: $msj"
+    echo "Maximum simultaneous jobs: $msj"
     if $cluster ; then
         echo "Running on cluster $cluster_name"
         echo "    with sbatch directive:"
@@ -240,6 +262,11 @@ summary () {
         if [[ ! -z ${dynamics_directives} ]] ; then
             echo "    with the extra directives for the dynamics:"
             echo "        $dynamics_directives"
+        fi
+        echo "Maximum ensemble members per job: $epj"
+        if [[ $epj -gt 1]] ; then
+            echo "   checking the queue every: $check_every"
+            echo "   batch launch template: $batch_launch_template"
         fi
         if $handle_modules ; then
             echo "    python_modules   : $python_modules"
@@ -280,11 +307,56 @@ propagate () { # accepts as only argument the optional init file. If not provide
             load_modules $dynamics_modules # load modules for running the dynamics
         fi
 
-        for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do # 0-pad the number of the ensemble member
+        if [[ $epj -gt 1 ]] ; then # more than one ensemble member per job
+            local last_e=0
+            local batch=1
+            local keep_going=true
+            while $keep_going ; do
+                if [[ $(($nens - $epj)) -gt $last_e ]] ; then
+                    end_e=$(($last_e + $epj))
+                else
+                    end_e=$nens
+                    keep_going=false
+                fi
+
+                # create batch launch file
+                batch_launch_file="$it_folder/batch_launch-$batch.sh"
+                cp $batch_launch_template $batch_launch_file
+
+                python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                    echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
+                done
+                echo "wait" >> $batch_launch_file
+                echo "" >> $batch_launch_file
+
+                # submit job    
+                $sbatch_script $dynamics_directives -o $it_folder/b$batch.slurm.out -e $it_folder/b$batch.slurm.err --job-name=rea_b$batch $batch_launch_file &
+
+                # check if we can submit another job by looking at the queue
+                sleep $check_every # give time to update the queue
+                while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
+                    sleep $check_every
+                done
+                # TODO: maybe consider adding a grep to get rid of the headline of squeue? Also to filter only on rea jobs?
+
+                batch=$(($batch + 1))
+                last_e=$end_e
+            done
+
+            # wait for the queue to empty
+            while [[ $(squeue --me | wc -l) -gt 1 ]] ; do
+                sleep $check_every
+            done
+        
+        else # in this case is much simpler: we just send each member to the queue independently
+            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do # 0-pad the number of the ensemble member
                 jobID=$((10#$ens % $msj)) # convert in base 10 and take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
                 $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $1 &
-        done
-        wait
+            done
+            wait
+        fi
+
         
         if $handle_modules ; then
             load_modules $python_modules # restore modules for python
@@ -392,6 +464,11 @@ dynamics_modules=''
 cloning_script=''
 make_traj_script=''
 msj=''
+
+# batching parameters
+epj=1
+batch_launch_template="batch_launch_template.sh"
+check_every="1m"
 
 # cluster generic parameters
 cluster=false
