@@ -319,6 +319,12 @@ propagate () { # accepts as only argument the optional init file. If not provide
                     keep_going=false
                 fi
 
+                # check if we can submit another job by looking at the queue
+                while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
+                    sleep $check_every
+                done
+                # TODO: maybe consider adding a grep to get rid of the headline of squeue? Also to filter only on rea jobs?
+
                 # create batch launch file
                 batch_launch_file="$it_folder/batch_launch-$batch.sh"
                 cp $batch_launch_template $batch_launch_file
@@ -326,19 +332,13 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
                 for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                     echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
+                    echo "sleep 30s" >> $batch_launch_file
                 done
                 echo "wait" >> $batch_launch_file
                 echo "" >> $batch_launch_file
 
                 # submit job    
                 $sbatch_script $dynamics_directives -o $it_folder/b$batch.slurm.out -e $it_folder/b$batch.slurm.err --job-name=rea_b$batch $batch_launch_file &
-
-                # check if we can submit another job by looking at the queue
-                sleep $check_every # give time to update the queue
-                while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
-                    sleep $check_every
-                done
-                # TODO: maybe consider adding a grep to get rid of the headline of squeue? Also to filter only on rea jobs?
 
                 batch=$(($batch + 1))
                 last_e=$end_e
