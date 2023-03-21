@@ -395,15 +395,17 @@ detect_errors () { # takes as input the folder that will contain *.err files
     local f=''
     for f in $fol/*.err ; do
         nl=$(wc -m <$f)
-        if [[ $nl -gt 0 ]] ; then # error file contains something
+        if [[ $nl == 0 ]] ; then # error file contains something
+            rm $f
+        elif [[ $(tail -n 1 $f) == "srun: Step created for job"* ]] ; then # there were some errors but the job finally started
+            echo "Non critical errors detected in $f"
+        else
             if ! $errors ; then
                 python log2telegram.py \""Detected errors in $f"\" 40 $TARGS
                 errors=true
             else
                 echo "Errors also in $f"
             fi
-        else
-            rm $f
         fi
     done
 }
