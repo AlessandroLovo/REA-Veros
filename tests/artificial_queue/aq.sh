@@ -3,12 +3,6 @@
 T=10
 it_folder="__test__"
 
-# telegram logging parameters
-TBT='~/REAVbot.txt' # telegram bot token
-CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
-TLL=20 # telegram logging level
-TARGS="$CHAT_ID $TBT $TLL" # telegram arguments
-
 sbatch_script="sbatch"
 dynamics_directives="--time=00:03:00"
 dynamics_script="./dyn.sh"
@@ -19,7 +13,7 @@ nens=10
 msj=2
 epj=3
 batch_launch_template="batch_launch_template.sh"
-check_every="1m"
+check_every="12s"
 
 propagate () {
     local last_e=0
@@ -37,7 +31,8 @@ propagate () {
         batch_launch_file="$it_folder/batch_launch-$batch.sh"
         cp $batch_launch_template $batch_launch_file
 
-        python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+        # python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+        echo Launching batch $batch
         for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
             echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
         done
