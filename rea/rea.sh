@@ -264,7 +264,7 @@ summary () {
             echo "        $dynamics_directives"
         fi
         echo "Maximum ensemble members per job: $epj"
-        if [[ $epj -gt 1]] ; then
+        if [[ $epj -gt 1 ]] ; then
             echo "   checking the queue every: $check_every"
             echo "   batch launch template: $batch_launch_template"
         fi
