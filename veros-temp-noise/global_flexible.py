@@ -16,7 +16,15 @@ DATA_FILES = veros.tools.get_assets('global_flexible', os.path.join(BASE_PATH, '
 
 class GlobalFlexibleResolutionSetup(VerosSetup):
     """
-    Global model with flexible resolution.
+    Global model with flexible resolution. With temperature noise
+
+    For each EOF we have an autoregressive model with N terms:
+
+    c_t = \sigma \csi + \sum_{i=1}^N \rho_i c_{t - i}
+
+    N can be different for each EOF and the timestep is one month
+
+    Then the noise is interpolated linearly between consecutive months
     """
     # global settings
     min_depth = 20.
@@ -24,12 +32,13 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     equatorial_grid_spacing_factor = 0.66
     polar_grid_spacing_factor = None
 
-    lm  = np.load(f'{BASE_PATH}/landMask.npy')
-    pc_re = np.load(f'{BASE_PATH}/PCs_rescaled.npy')
-    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_rescaled.npy')
-    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy')
-    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy')    
+    lm  = np.load(f'{BASE_PATH}/landMask.npy') # the noise will be applied only to the sea
+    pc_re = np.load(f'{BASE_PATH}/PCs_rescaled.npy') # time series for the components of the EOFs
+    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_rescaled.npy') # EOF spatial patterns
+    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy') # coefficients of the autoregressive model
+    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy') # amplitudes of the white noise for each eof
     dim_re, n_pc_re = np.shape(pc_re)
+    # number of lags (i.e. autoregressive terms) for each eof
     index_re = [1, 1, 168, 60, 1, 1, 1, 1, 1, 4, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 240, 1, 2, 1, 1, 1, 1, 1, 1, 1] # automate? 
     pc_lag_re = np.zeros([n_pc_re,np.amax(index_re)])
     lag_re = np.amax(index_re)
@@ -229,13 +238,18 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
 
     @veros_method(dist_safe=False, local_variables=['tempNoisefield1', 'tempNoisefield2'])
     def noise_step(self, vs):
-        vs.tempNoisefield1 = np.copy(vs.tempNoisefield2)
-        vs.tempNoisefield1[np.isnan(vs.tempNoisefield1)] = 0.
-        for p in range(self.n_pc_re):
-            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:],self.rho_re[p,:])+np.random.normal(0,self.sig_re[p]) 
+        vs.tempNoisefield1 = np.copy(vs.tempNoisefield2) # save the old noise field
+        vs.tempNoisefield1[np.isnan(vs.tempNoisefield1)] = 0. # this probably isn't necessary since we do it on tempNoisefield2
+        for p in range(self.n_pc_re): # for every EOF
+            # this is the autoregressive step: rho are the decay coefficients and sig is the white noise amplitude
+            # we apply it to the last step of the timeseries lag_re for every EOF
+            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:],self.rho_re[p,:])+np.random.normal(0,self.sig_re[p])
+
+            # here we roll the time series to keep the history: now the last item becomes the first (the one we just computed), the first becomes the second and so on
             self.pc_lag_re[p,:] = np.roll(self.pc_lag_re[p,:],1)
-        pc_series_re = self.pc_lag_re[:,0] 
-        vs.tempNoisefield2[2:-2,2:-2] = np.tensordot(pc_series_re, self.eof_re, axes = ([0],[0])).T[... , ::-1]
+
+        pc_series_re = self.pc_lag_re[:,0] # take the first item, i.e. the one we just computed
+        vs.tempNoisefield2[2:-2,2:-2] = np.tensordot(pc_series_re, self.eof_re, axes = ([0],[0])).T[... , ::-1] # multiply the coefficients for the EOFs to create the spatial noise
         vs.tempNoisefield2[np.isnan(vs.tempNoisefield2)] = 0.
         #print('-------------- New Noise Field ------------')
         #print(vs.tempNoisefield1.min(), vs.tempNoisefield2.min(), vs.tempNoisefield1.max(), vs.tempNoisefield2.max())
@@ -381,7 +395,9 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
         # W/m^2 K kg/J m^3/kg = K m/s
         
         ### factor to scale noise amplitude
-        sigmaT = 1.
+        sigmaT = 1. # 1 is the noise obtained from Rreanalysis data
+
+        # here we do a linear interpolation between the previous month (tempNoisefiled1) and the next one (tempNoisefield2)
         fxa = f1 * (vs.t_star[..., n1] + sigmaT*vs.tempNoisefield1) + f2 * (vs.t_star[..., n2] + sigmaT*vs.tempNoisefield2)
         vs.qqnec = f1 * vs.qnec[..., n1] + f2 * vs.qnec[..., n2]
         vs.qqnet = f1 * vs.qnet[..., n1] + f2 * vs.qnet[..., n2]
