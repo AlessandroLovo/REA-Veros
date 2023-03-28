@@ -33,15 +33,15 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     polar_grid_spacing_factor = None
 
     lm  = np.load(f'{BASE_PATH}/landMask.npy') # the noise will be applied only to the sea
-    pc_re = np.load(f'{BASE_PATH}/PCs_new.npy') # time series for the components of the EOFs
-    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_new.npy') # EOF spatial patterns
-    rho_re = np.load(f'{BASE_PATH}/yw_rho_new.npy') # coefficients of the autoregressive model
-    sig_re = np.load(f'{BASE_PATH}/yw_sigma_new.npy') # amplitudes of the white noise for each eof
+    pc_re = np.load(f'{BASE_PATH}/PCs_rescaled.npy') # time series for the components of the EOFs
+    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_rescaled.npy') # EOF spatial patterns
+    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy') # coefficients of the autoregressive model
+    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy') # amplitudes of the white noise for each eof
     dim_re, n_pc_re = np.shape(pc_re)
     # number of lags (i.e. autoregressive terms) for each eof
-    index_re = np.load(f'{BASE_PATH}Lags.npy')
-    pc_lag_re = np.zeros([n_pc_re,int(np.amax(index_re))])
-    lag_re = int(np.amax(index_re))
+    index_re = [1, 1, 168, 60, 1, 1, 1, 1, 1, 4, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 240, 1, 2, 1, 1, 1, 1, 1, 1, 1] # automate? 
+    pc_lag_re = np.zeros([n_pc_re,np.amax(index_re)])
+    lag_re = np.amax(index_re)
 
     @veros_method
     def set_parameter(self, vs):
@@ -140,7 +140,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
                 comm=rs.mpi_comm,
             )
 
-        with h5netcdf.File(f'{BASE_PATH}/forcing_1deg_global_interp_hosing.nc', 'r', **kwargs) as forcing_file:
+        with h5netcdf.File(f'{BASE_PATH}/forcing_1deg_global_hosing.nc', 'r', **kwargs) as forcing_file:
 
             var_obj = forcing_file.variables[var]
             return np.array(var_obj[idx].astype(str(var_obj.dtype))).T
@@ -230,8 +230,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
         pc_series_re = np.zeros(self.n_pc_re)
 
         for p in range(self.n_pc_re):
-            lag = int(self.index_re[p])
-            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:lag],self.rho_re[p,:lag])+np.random.normal(0,self.sig_re[p]) 
+            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:],self.rho_re[p,:])+np.random.normal(0,self.sig_re[p]) 
             self.pc_lag_re[p,:] = np.roll(self.pc_lag_re[p,:],1)
         pc_series_re = self.pc_lag_re[:,0]
         vs.tempNoisefield2[2:-2,2:-2] = np.tensordot(pc_series_re,self.eof_re, axes = ([0],[0])).T[... , ::-1]
@@ -244,8 +243,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
         for p in range(self.n_pc_re): # for every EOF
             # this is the autoregressive step: rho are the decay coefficients and sig is the white noise amplitude
             # we apply it to the last step of the timeseries lag_re for every EOF
-            lag = int(self.index_re[p])
-            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:lag],self.rho_re[p,:lag])+np.random.normal(0,self.sig_re[p])
+            self.pc_lag_re[p,self.lag_re-1] = np.dot(self.pc_lag_re[p,:],self.rho_re[p,:])+np.random.normal(0,self.sig_re[p])
 
             # here we roll the time series to keep the history: now the last item becomes the first (the one we just computed), the first becomes the second and so on
             self.pc_lag_re[p,:] = np.roll(self.pc_lag_re[p,:],1)
