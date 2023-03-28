@@ -4,4 +4,6 @@
 *slurm-*
 *.DS_Store
 
+*HEAVY--*
+
 *__test__*
