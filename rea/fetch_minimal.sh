@@ -10,6 +10,13 @@ usage () {
     echo "To fetch the minimal version of the last run performed on the server"
 }
 
+## Check that the script is being launched from the correct directory
+if [[ "$(pwd)" != */rea ]] ; then
+    echo "You need to source this script from the directory that contains it!!"
+    return 1
+    exit 1
+fi
+
 ## Check if no arguments were provided and thus print usage
 if [[ $# == 0 ]] ; then
     usage

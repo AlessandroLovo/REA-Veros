@@ -429,6 +429,12 @@ check () { # takes as input the folder in which to check that everything is fine
 # ==============================================================================================
 # ==============================================================================================
 
+## Check that the script is being launched from the correct directory
+if [[ "$(pwd)" != */rea ]] ; then
+    echo "You need to source this script from the directory that contains it!!"
+    return 1
+    exit 1
+fi
 
 ## Check if no arguments were provided and thus print usage
 if [[ $# == 0 ]] ; then
