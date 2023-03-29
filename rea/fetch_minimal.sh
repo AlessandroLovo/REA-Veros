@@ -63,7 +63,7 @@ if [[ $run_name != *minimal ]] ; then
 fi
 
 if [[ -z $2 ]] ; then
-    destination='.'
+    destination="..${folder##*REA-Veros}"
 else
     destination="$2"
 fi
@@ -72,6 +72,26 @@ ending="${destination##*/}"
 if [[ "$ending" != "$run_name" ]] ; then
     destination="$destination/$run_name"
 fi
+
+echo "Fetching $folder into $destination"
+proceed=false
+if ! $proceed ; then
+    # ask for confirmation
+    read -p "Proceed? (Y/n) " -n 1 -r
+    echo # go to new line
+    if [[ $REPLY =~ ^[Y]$ ]] ; then
+        proceed=true
+    fi
+fi
+
+if ! $proceed ; then
+    echo
+    echo "------Aborting------"
+    echo
+    return 0
+    exit 0 # make sure the script exits if return did not work because the script was not sourced
+fi
+
 
 if [[ ! -d $destination ]] ; then
     scp -r $folder "${destination%/*}"
