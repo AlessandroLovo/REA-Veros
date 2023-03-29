@@ -494,6 +494,8 @@ TBT='~/REAVbot.txt' # telegram bot token
 CHAT_ID='~/telegram_chat_ID.txt' # telegram chat ID
 TLL=30 # telegram logging level
 
+# file that keeps track of the last run
+last_run_file="$HOME/.reav-last_run.txt"
 
 ##### Get arguments from the command line #####
 parse_command_line "$@"
@@ -652,12 +654,23 @@ fi
 echo
 echo "------Starting------"
 echo
+start_time=$(date)
+
+echo "Writing info to $last_run_file"
+# with the first line we overwrite the file
+realpath $folder > $last_run_file
+echo $HOSTNAME >> $last_run_file
+echo "$@" >> $last_run_file
+echo >> $last_run_file
+echo "Started: $start_time" >> $last_run_file
+
 
 mkdir -p $folder # create the directory for the run folder if it doesn't exist
 
 # log all parameters to a file
 arg_file="$folder/parameters.txt"
 summary >> $arg_file
+echo "Started: $start_time" >> $arg_file
 
 # load modules for python
 if $cluster && $handle_modules ; then
@@ -781,3 +794,9 @@ python reconstruct.py "$it_folder"
 python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
 echo
 echo
+
+end_time=$(date)
+echo "Completed: $end_time" >> $last_run_file
+echo "Completed: $end_time" >> $arg_file
+echo >> $arg_file
+echo >> $arg_file

@@ -1,7 +1,41 @@
 #!/bin/bash
 
-# scps the minimal version of a run
+usage () {
+    echo "This script fetches a (minimal) run from a cluster"
+    echo
+    echo "Usage:"
+    echo "    . fetch_minimal.sh [user@]host:<path/to/run_folder> [<destination>]" 
+    echo "You can also use"
+    echo "    . fetch_minimal.sh [user@]host [<destination>]"
+    echo "To fetch the minimal version of the last run performed on the server"
+}
+
+## Check if no arguments were provided and thus print usage
+if [[ $# == 0 ]] ; then
+    usage
+    return 0
+    exit 0
+fi
+
+last_run_file_name=".reav-last_run.txt"
+last_run_file="$HOME/$last_run_file_name"
+
 folder="$1"
+
+if [[ "$folder" != *:* ]] ; then # check if folder contains ':' so we distinguish a host from a host:path
+    # here folder is the host name
+    rm -f $last_run_file
+    scp $folder:$last_run_file_name $HOME
+
+    if [[ ! -f $last_run_file ]] ; then
+        echo "Couldn't find last run file on host $folder"
+        return 1
+        exit 1
+    fi
+
+    folder="$folder:$(head -n 1 $last_run_file)"
+fi
+
 folder="${folder%/}"
 run_name="${folder##*/}"
 
@@ -9,6 +43,23 @@ if [[ $run_name != *minimal ]] ; then
     echo
     echo "WARNING: You are trying to scp a non minimal run: this could take very long"
     echo
+    proceed=false
+    if ! $proceed ; then
+        # ask for confirmation
+        read -p "Proceed? (Y/n) " -n 1 -r
+        echo # go to new line
+        if [[ $REPLY =~ ^[Y]$ ]] ; then
+            proceed=true
+        fi
+    fi
+
+    if ! $proceed ; then
+        echo
+        echo "------Aborting------"
+        echo
+        return 0
+        exit 0 # make sure the script exits if return did not work because the script was not sourced
+    fi
 fi
 
 if [[ -z $2 ]] ; then
@@ -31,6 +82,16 @@ fi
 mkdir -p $destination
 
 scp $folder/parameters.txt $destination/
+
+# check that we actually copied the file
+if [[ ! -f "$destination/parameters.txt" ]] ; then
+    echo "Could not fetch run $folder"
+    # remove the destination directory only if it is empty
+    rmdir $destination 2> /dev/null
+    return 1
+    exit 1
+fi
+
 scp $folder/reconstructed.json $destination/
 
 for n in {0..9999} ; do
