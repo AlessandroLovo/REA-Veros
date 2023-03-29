@@ -300,8 +300,7 @@ load_modules () {
 
 # run the dynamics for one timestep of the algorithm
 propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
-    date >> $dyn_log
-    echo "$HOSTNAME: Starting dynamics" >> $dyn_log
+    echo "$HOSTNAME: Starting dynamics: $(date)" >> $dyn_log
     if $cluster ; then
         if $handle_modules ; then
             load_modules $dynamics_modules # load modules for running the dynamics
@@ -387,8 +386,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
             last_e=$end_e
         done
     fi
-    echo "Dynamics completed" >> $dyn_log
-    date >> $dyn_log
+    echo "Completed: $(date)" >> $dyn_log
 }
 
 detect_errors () { # takes as input the folder that will contain *.err files
@@ -702,7 +700,7 @@ for n in $(seq 0 $NITER) ; do
             python log2telegram.py \""---Continuing run---"\" 31 $TARGS
         fi
 
-        if [[ ! -f "$it_folder/dynamics.log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
+        if [[ ! -f "$dyn_log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
             python log2telegram.py \""---Propagating---"\" 25 $TARGS
 
             if [[ ! -z ${init_file} ]] ; then
@@ -725,6 +723,13 @@ for n in $(seq 0 $NITER) ; do
                 return 1
                 exit 1
             fi
+
+        elif [[ "$(tail -n 1 $dyn_log)" != Completed* ]] ; then
+            echo "Dynamics has been started but not completed in iteration folder $it_folder"
+            echo "Check $dyn_log. The last line must start with 'Completed' for the dynamics to be considered done."
+            echo "If there are errors in $it_folder, please clean them up and compute the dynamics again by deleting $dyn_log"
+            return 1
+            exit 1
 
         else
             echo
