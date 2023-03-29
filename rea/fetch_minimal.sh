@@ -41,6 +41,7 @@ if [[ "$folder" != *:* ]] ; then # check if folder contains ':' so we distinguis
     fi
 
     folder="$folder:$(head -n 1 $last_run_file)"
+    folder="${folder%/}_minimal"
 fi
 
 folder="${folder%/}"
