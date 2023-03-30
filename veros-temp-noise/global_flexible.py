@@ -39,7 +39,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     sig_re = np.load(f'{BASE_PATH}/yw_sigma_new.npy') # amplitudes of the white noise for each eof
     dim_re, n_pc_re = np.shape(pc_re)
     # number of lags (i.e. autoregressive terms) for each eof
-    index_re = np.load(f'{BASE_PATH}Lags.npy')
+    index_re = np.load(f'{BASE_PATH}/Lags.npy')
     pc_lag_re = np.zeros([n_pc_re,int(np.amax(index_re))])
     lag_re = int(np.amax(index_re))
 
