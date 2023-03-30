@@ -33,10 +33,10 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     polar_grid_spacing_factor = None
 
     lm  = np.load(f'{BASE_PATH}/landMask.npy') # the noise will be applied only to the sea
-    pc_re = np.load(f'{BASE_PATH}/PCs_new.npy') # time series for the components of the EOFs
-    eof_re = lm*np.load(f'{BASE_PATH}/EOFs_new.npy') # EOF spatial patterns
-    rho_re = np.load(f'{BASE_PATH}/yw_rho_new.npy') # coefficients of the autoregressive model
-    sig_re = np.load(f'{BASE_PATH}/yw_sigma_new.npy') # amplitudes of the white noise for each eof
+    pc_re = np.load(f'{BASE_PATH}/PCs.npy') # time series for the components of the EOFs
+    eof_re = lm*np.load(f'{BASE_PATH}/EOFs.npy') # EOF spatial patterns
+    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy') # coefficients of the autoregressive model
+    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy') # amplitudes of the white noise for each eof
     dim_re, n_pc_re = np.shape(pc_re)
     # number of lags (i.e. autoregressive terms) for each eof
     index_re = np.load(f'{BASE_PATH}/Lags.npy')
