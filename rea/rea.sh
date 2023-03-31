@@ -132,6 +132,10 @@ parse_command_line () { # you should give it "$@"
                 handle_modules=false
                 shift # past argument
                 ;;
+            --no-module-list) # disable printing loaded modules
+                print_loaded_modules=false
+                shift
+                ;;
             --python-modules) # script that loads the modules required for running python on the cluster
                 python_modules="$2"
                 shift
@@ -155,6 +159,10 @@ parse_command_line () { # you should give it "$@"
             -l|--log-level) # telegram logging level
                 TLL="$2"
                 shift
+                shift
+                ;;
+            --create-minimal) # create minimal run at the end
+                create_minimal=true
                 shift
                 ;;
             --skip) # skip summary of parameters and confirmation
@@ -218,12 +226,15 @@ Positional arguments are ignored. The options are the following (the ones enclos
     [--directives]              sbatch directives for every submitted job, enclose it in inverted commas
     [--dynamics-directives]     sbatch directives applied only to jobs running the dynamics
     [--no-modules]              do not handle modules
+    [--no-module-list]          do not print which moules are currently loaded
     [--python-modules]          script that loads modules for python
     [--dynamics-modules]        script that loads modules for the dynamics
     
     [-b|--bot-token]            telegram bot token or file containing it
     [-c|--chat-id]              telegram chat id to which to send the logging messages
     [-l|--log-level]            telegram logging level
+
+    [--create-minimal]          Create minimal run at the end
     
     [--skip]                    start the run without asking for confirmation
     
@@ -292,7 +303,9 @@ load_modules () {
     if [[ ! -z $1 ]] ; then
         module purge
         . $1
-        module list
+        if $print_loaded_modules ; then
+            module list
+        fi
     else
         python log2telegram.py \""No module loading script provided: skipping"\" 30 $TARGS 
     fi
@@ -491,6 +504,7 @@ account=''
 directives=''
 dynamics_directives=''
 handle_modules=true
+print_loaded_modules=true
 python_modules=''
 
 # telegram logging parameters
@@ -500,6 +514,9 @@ TLL=30 # telegram logging level
 
 # file that keeps track of the last run
 last_run_file="$HOME/.reav-last_run.txt"
+
+# whether to automatically create minimal run at the end
+create_minimal=false
 
 ##### Get arguments from the command line #####
 parse_command_line "$@"
@@ -535,7 +552,7 @@ if [[ -d $model_dir ]] ; then
         dynamics_modules="$cluster_dir/modules/$model.sh"
     fi
 else
-    echo "No such directory $model_dir"
+    echo "No such model directory $model_dir"
     return 1
     exit 1
 fi
@@ -551,7 +568,7 @@ if $cluster && $handle_modules ; then
     for file in "$python_modules" "$dynamics_modules" ; do
         if [[ ! -z ${file} ]] ; then
             if [[ ! -f ${file} ]] ; then
-                echo "File not found: $1"
+                echo "File not found: $file"
                 return 1
                 exit 1
             fi
@@ -562,6 +579,13 @@ fi
 # set the proper number of maximum simultaneous jobs
 if [[ $msj == 0 ]] ; then
     msj=$nens
+fi
+
+# check number of ensemble members per job
+if [[ $epj -lt 1 ]] ; then
+    echo "Must have at least one ensemble member per job, not $epj"
+    return 1
+    exit 1
 fi
 
 # prepare the sbatch launching command and set mpi envirnoment variable
@@ -593,7 +617,7 @@ i0=0
 if [[ -z ${initial_ensemble_folder} ]] ; then
     # set folder name
     if [[ -z ${name} ]] ; then
-        folder="$root_folder/$p--k__$k--nens__$nens--T__$T"
+        folder="$root_folder/$p--k$k--e$nens--t$T"
     else
         folder="$root_folder/$name"
     fi
@@ -811,3 +835,8 @@ echo "Completed: $end_time" >> $last_run_file
 echo "Completed: $end_time" >> $arg_file
 echo >> $arg_file
 echo >> $arg_file
+
+if $create_minimal ; then
+    python log2telegram.py \""$HOSTNAME:---Creating minimal run---"\" 45 $TARGS
+    . create_minimal.sh $folder
+fi
