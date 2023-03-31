@@ -307,7 +307,7 @@ load_modules () {
             module list
         fi
     else
-        python log2telegram.py \""No module loading script provided: skipping"\" 30 $TARGS 
+        python log2telegram.py \""$HOSTNAME: No module loading script provided: skipping"\" 30 $TARGS 
     fi
 }
 
@@ -344,7 +344,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 batch_launch_file="$it_folder/batch_launch-$batch.sh"
                 cp $batch_launch_template $batch_launch_file
 
-                python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+                python log2telegram.py \""$HOSTNAME: Launching batch $batch"\" 20 $TARGS
                 for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                     echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
                     echo "sleep 30s" >> $batch_launch_file
@@ -390,7 +390,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 keep_going=false
             fi
 
-            python log2telegram.py \""Launching batch $batch"\" 20 $TARGS
+            python log2telegram.py \""$HOSTNAME: Launching batch $batch"\" 20 $TARGS
             for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                 $dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &
             done
@@ -415,7 +415,7 @@ detect_errors () { # takes as input the folder that will contain *.err files
             echo "Non critical errors detected in $f"
         else
             if ! $errors ; then
-                python log2telegram.py \""Detected errors in $f"\" 40 $TARGS
+                python log2telegram.py \""$HOSTNAME: Detected errors in $f"\" 40 $TARGS
                 errors=true
             else
                 echo "Errors also in $f"
@@ -711,30 +711,30 @@ python log2telegram.py \""$HOSTNAME:\\nStarting $NITER iterations in folder $fol
 
 for n in $(seq 0 $NITER) ; do
     _n=$(printf "%04d" $(($n + $i0)) )
-    python log2telegram.py \""------------Iteration $_n-------------"\" 31 $TARGS
+    python log2telegram.py \""$HOSTNAME:------------Iteration $_n-------------"\" 31 $TARGS
     it_folder="$folder/i$_n"
     dyn_log="$it_folder/dynamics.log"
     mkdir -p $it_folder # create the iteration folder
 
     if [[ $n == 0 ]] ; then # initialization: there might already be an ensemble, we might be continuing another run
         if [[ ! -f "$it_folder/info.json" ]] ; then
-            python log2telegram.py \""---Initializing ensemble---"\" 31 $TARGS
+            python log2telegram.py \""$HOSTNAME:---Initializing ensemble---"\" 31 $TARGS
             python setup_info.py $it_folder $nens # setup info file for this iteration if it is not there already
         else
-            python log2telegram.py \""---Continuing run---"\" 31 $TARGS
+            python log2telegram.py \""$HOSTNAME:---Continuing run---"\" 31 $TARGS
         fi
 
         if [[ ! -f "$dyn_log" ]] ; then # if the dynamics.log file does not exist, we propagate the ensemble in the first iteration
-            python log2telegram.py \""---Propagating---"\" 25 $TARGS
+            python log2telegram.py \""$HOSTNAME:---Propagating---"\" 25 $TARGS
 
             if [[ ! -z ${init_file} ]] ; then
-                python log2telegram.py \""---Detected single common ancestor---"\" 25 $TARGS
+                python log2telegram.py \""$HOSTNAME:---Detected single common ancestor---"\" 25 $TARGS
                 if [[ ! -z ${init_ensemble_script} ]] ; then
                     python log2telegram.py \""---Creating ensemble by perturbing initial conditions---"\" 25 $TARGS
                     python $init_ensemble_script $init_file $it_folder $nens
                     init_file=''
                 else
-                    python log2telegram.py \""---All ensemble members will have exactly the same initial conditions---"\" 25 $TARGS
+                    python log2telegram.py \""$HOSTNAME:---All ensemble members will have exactly the same initial conditions---"\" 25 $TARGS
                 fi
             fi
 
@@ -757,7 +757,7 @@ for n in $(seq 0 $NITER) ; do
 
         else
             echo
-            python log2telegram.py \""Ensemble has already been propagated for this iteration"\" 25 $TARGS
+            python log2telegram.py \""$HOSTNAME: Ensemble has already been propagated for this iteration"\" 25 $TARGS
             echo
         fi
     
@@ -766,7 +766,7 @@ for n in $(seq 0 $NITER) ; do
         prev_it_folder="$folder/i$prev_it"
 
         # compute the score for each ensemble member
-        python log2telegram.py \""---Computing scores---"\" 25 $TARGS
+        python log2telegram.py \""$HOSTNAME:---Computing scores---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
         else
@@ -781,7 +781,7 @@ for n in $(seq 0 $NITER) ; do
         fi
 
         # selection step, i.e. resampling
-        python log2telegram.py \""---Resampling---"\" 25 $TARGS
+        python log2telegram.py \""$HOSTNAME:---Resampling---"\" 25 $TARGS
         if $cluster ; then
             $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
         else
@@ -809,7 +809,7 @@ for n in $(seq 0 $NITER) ; do
 
         # propagate the ensmble forward
         if [[ $n != $NITER ]] ; then # do not propagate the last isteration
-            python log2telegram.py \""---Propagating---"\" 25 $TARGS
+            python log2telegram.py \""$HOSTNAME:---Propagating---"\" 25 $TARGS
 
             propagate
 
@@ -823,7 +823,7 @@ for n in $(seq 0 $NITER) ; do
     fi
 done
 
-python log2telegram.py \""------------Reconstructing-------------"\" 41 $TARGS
+python log2telegram.py \""$HOSTNAME:------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
 python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
