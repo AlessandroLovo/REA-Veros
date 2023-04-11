@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ -z $SRUN_MPI_ENABLED ]] ; then
-    echo "Please export SRUN_MPI_ENABLED either to true (use srun) or false (use mpirun)"
+if [[ -z $REA_SRUN_MPI_ENABLED ]] ; then
+    echo "Please export REA_SRUN_MPI_ENABLED either to true (use srun) or false (use mpirun)"
     return 1
     exit 1
 fi

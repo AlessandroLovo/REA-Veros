@@ -13,11 +13,11 @@
 
 ###export OMP_NUM_THREADS=1
 
-if [[ -z "$SRUN_MPI_ENABLED" ]] ; then
-    echo "SRUN_MPI_ENABLED env variable is not set" >&2
+if [[ -z "$REA_SRUN_MPI_ENABLED" ]] ; then
+    echo "REA_SRUN_MPI_ENABLED env variable is not set" >&2
     return 1
     exit 1
-elif $SRUN_MPI_ENABLED ; then
+elif $REA_SRUN_MPI_ENABLED ; then
     veros_mpi_cmd="srun --mpi=pmi2 --"
 else
     veros_mpi_cmd="mpirun -np 12"
