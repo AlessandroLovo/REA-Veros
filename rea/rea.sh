@@ -24,11 +24,6 @@ parse_command_line () { # you should give it "$@"
                 shift
                 shift
                 ;;
-            --cloning-script) # cloning script
-                cloning_script="$2"
-                shift
-                shift
-                ;;
             -t|--timestep) # resampling timestep
                 T="$2"
                 shift
@@ -39,8 +34,8 @@ parse_command_line () { # you should give it "$@"
                 shift
                 shift
                 ;;
-            --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
-                make_traj_script="$2"
+            --score-mode) # how to compute scores
+                cs_mode="$2"
                 shift
                 shift
                 ;;
@@ -56,6 +51,16 @@ parse_command_line () { # you should give it "$@"
                 ;;
             --init-ensemble-script) # script for creating an ensemble from a single init file
                 init_ensemble_script="$2"
+                shift
+                shift
+                ;;
+            --cloning-script) # cloning script
+                cloning_script="$2"
+                shift
+                shift
+                ;;
+            --make-traj-script) # script that creates the trajectory of the observable used to compute the scores
+                make_traj_script="$2"
                 shift
                 shift
                 ;;
@@ -197,6 +202,10 @@ Positional arguments are ignored. The options are the following (the ones enclos
     -k|--k                      selection strenght
     -t|--timestep               timestep of the algorithm
     -e|--ensemble-size          number of ensemble members
+
+    [--score-mode]              how to compute the score of each ensemble member.
+                                Either 'relative' (default), where the score is the progress made in the current iteration
+                                or 'absolute', where the score is just the value at the end of the iteration
 
     [-E|--initial-ensemble]     folder containing the initial ensemble, in particular init files for each ensemble member
     [-I|--init-file]            single init file from which to generate the ensemble
@@ -467,6 +476,7 @@ NITER=15 # number of iterations of the algorithm
 T=50 # timestep of the algorithm
 nens=20 # number of ensemble member
 k=2 # selection strenght parameter
+cs_mode='relative' # how to compute the scores
 
 # generic parameters
 proceed=false # whether to start the run withoud asking for confirmation
@@ -611,6 +621,15 @@ if $cluster ; then
     fi
     export SRUN_MPI_ENABLED=$srun_mpi
 fi
+
+# export variables for computing scores
+if [[ "${cs_mode}" != "absolute" && "${cs_mode}" != "relative" ]] ; then
+    echo "Invalide score mode: ${cs_score}"
+    return 1
+    exit 1
+fi
+export REA_CS_MODE=$cs_mode
+export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
 
 # set the proper run folder and iteration number
 i0=0
@@ -768,9 +787,9 @@ for n in $(seq 0 $NITER) ; do
         # compute the score for each ensemble member
         python log2telegram.py \""$HOSTNAME:---Computing scores---"\" 25 $TARGS
         if $cluster ; then
-            $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder $make_traj_script
+            $sbatch_script -o $prev_it_folder/cs.slurm.out -e $prev_it_folder/cs.slurm.err --job-name=rea_cs scompute_scores.sh $k $prev_it_folder
         else
-            python compute_scores.py $k $prev_it_folder $make_traj_script >$prev_it_folder/cs.out 2>$prev_it_folder/cs.err
+            python compute_scores.py $k $prev_it_folder >$prev_it_folder/cs.out 2>$prev_it_folder/cs.err
         fi
 
         # check that everything went smoothly
