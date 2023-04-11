@@ -81,6 +81,8 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
         folder for the new iteration
     previous_folder : str
         folder for the previous iteration
+    cloning_script : str
+        path to the script used for cloning a trajectory
     '''
     if cloning_script.endswith('.py'): # python script
         cloning_script = f'python {cloning_script}'
@@ -139,7 +141,19 @@ def resample(current_folder: str, previous_folder: str, cloning_script: str='../
 if __name__ == '__main__':
     current_folder = sys.argv[1]
     previous_folder = sys.argv[2]
-    cloning_script = sys.argv[3]
 
-    with ut.TelegramLogger(logger, *(sys.argv[4:])):
-        resample(current_folder, previous_folder, cloning_script)
+    kwarg2envvar = {
+        'cloning_script': 'REA_CLONING_SCRIPT',
+    }
+    kwargs = {}
+    for k,ev in kwarg2envvar.items():
+        try:
+            v = os.environ[ev]
+            if v == '':
+                v = None
+            kwargs[k] = v
+        except KeyError:
+            logger.warning(f'{ev} is not set: using default value for {k}')
+
+    with ut.TelegramLogger(logger, *(sys.argv[3:])):
+        resample(current_folder, previous_folder, **kwargs)

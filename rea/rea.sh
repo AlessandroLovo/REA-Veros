@@ -619,7 +619,7 @@ if $cluster ; then
         return 1
         exit 1
     fi
-    export SRUN_MPI_ENABLED=$srun_mpi
+    export REA_SRUN_MPI_ENABLED=$srun_mpi
 fi
 
 # export variables for computing scores
@@ -635,7 +635,8 @@ fi
 export REA_CS_MODE=$cs_mode
 export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
 
-
+# export cloning script
+export REA_CLONING_SCRIPT=$cloning_script
 
 # set the proper run folder and iteration number
 i0=0
@@ -808,9 +809,9 @@ for n in $(seq 0 $NITER) ; do
         # selection step, i.e. resampling
         python log2telegram.py \""$HOSTNAME:---Resampling---"\" 25 $TARGS
         if $cluster ; then
-            $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder $cloning_script
+            $sbatch_script -o $it_folder/resample.slurm.out -e $it_folder/resample.slurm.err --job-name=rea_r sresample.sh $it_folder $prev_it_folder
         else
-            python resample.py $it_folder $prev_it_folder $cloning_script >$it_folder/resample.out 2>$it_folder/resample.err
+            python resample.py $it_folder $prev_it_folder >$it_folder/resample.out 2>$it_folder/resample.err
         fi
         # perturbation of initial conditions is done in the cloning script
 
@@ -851,15 +852,21 @@ done
 python log2telegram.py \""$HOSTNAME:------------Reconstructing-------------"\" 41 $TARGS
 python reconstruct.py "$it_folder"
 
-python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
-echo
-echo
-
 end_time=$(date)
 echo "Completed: $end_time" >> $last_run_file
 echo "Completed: $end_time" >> $arg_file
 echo >> $arg_file
 echo >> $arg_file
+
+# unset env variables
+unset REA_CLONING_SCRIPT
+unset REA_CS_MODE
+unset REA_MAKE_TRAJ_SCRIPT
+unset REA_SRUN_MPI_ENABLED
+
+python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
+echo
+echo
 
 if $create_minimal ; then
     python log2telegram.py \""$HOSTNAME:---Creating minimal run---"\" 45 $TARGS
