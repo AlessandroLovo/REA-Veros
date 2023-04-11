@@ -266,10 +266,11 @@ summary () {
         echo "    from iteration $i0"
     fi
     echo "Algorithm will be run with"
-    echo "    NITER = $NITER"
-    echo "    nens  = $nens"
-    echo "    t     = $T"
-    echo "    k     = $k"
+    echo "    NITER      = $NITER"
+    echo "    nens       = $nens"
+    echo "    t          = $T"
+    echo "    k          = $k"
+    echo "    score mode = $cs_mode"
     echo "Model = $model"
     echo "    dynamics_script = $dynamics_script"
     echo "    cloning_script = $cloning_script"
@@ -613,16 +614,15 @@ if $cluster ; then
         sbatch_script="$sbatch_script $directives"
     fi
 
-    # export MPI env var
+    # check MPI env var
     if [[ -z ${srun_mpi} ]] ; then
         echo "srun_mpi must be set!"
         return 1
         exit 1
     fi
-    export REA_SRUN_MPI_ENABLED=$srun_mpi
 fi
 
-# export variables for computing scores
+# check that score mode is valid
 if [[ "${cs_mode}" == a* ]] ; then
     cs_mode="absolute"
 elif [[ "${cs_mode}" == r* ]] ; then
@@ -632,11 +632,6 @@ else
     return 1
     exit 1
 fi
-export REA_CS_MODE=$cs_mode
-export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
-
-# export cloning script
-export REA_CLONING_SCRIPT=$cloning_script
 
 # set the proper run folder and iteration number
 i0=0
@@ -709,6 +704,13 @@ echo
 echo "------Starting------"
 echo
 start_time=$(date)
+
+# export env variables for subprocesses
+export REA_SRUN_MPI_ENABLED=$srun_mpi
+export REA_CS_MODE=$cs_mode
+export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
+export REA_CLONING_SCRIPT=$cloning_script
+
 
 echo "Writing info to $last_run_file"
 # with the first line we overwrite the file
