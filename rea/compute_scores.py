@@ -32,7 +32,7 @@ logger.level = logging.INFO
 
 ### The function that computes the score starting from a segment of trajectory ###
 
-def eval_score(traj) -> float:
+def relative_score(traj) -> float:
     '''
     Just takes the difference between the last and first x coordinate of the trajectory
 
@@ -49,13 +49,13 @@ def eval_score(traj) -> float:
     return traj[-1,1] - traj[0,1]
 
 window_width = 1
-def eval_cum_score(traj, initial=False) -> float:
+def absolute_score(traj, initial=False) -> float:
     if initial:
         return np.mean(traj[:window_width,1])
     return np.mean(traj[-window_width:,1])
     
 
-def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canceling=False, make_traj_script=None):
+def compute_score(k: float=0.0, folder: str=None, mode='relative', from_cum=True, telescopic_canceling=False, make_traj_script=None):
     '''
     Computes the scores and weights for each ensemble member in a folder
 
@@ -82,6 +82,14 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canc
 
     d['k'] = k
 
+    if mode == 'absolute':
+        from_cum = False
+        eval_score_func = absolute_score
+    elif mode == 'relative':
+        eval_score_func = relative_score
+    else:
+        raise ValueError(f'unrecognized {mode = }')
+
     # compute the scores
     logger.info('Computing scores for each ensemble member')
     escores = []
@@ -97,9 +105,9 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canc
         # This implementation is robust against different values of k along the realization of the algorithm
         if from_cum: # compute first the cumulative score. This is the way to go if the score involves a time average
             if 'cum_score_i' not in e:
-                e['cum_score_i'] = eval_cum_score(traj, initial=True)
+                e['cum_score_i'] = absolute_score(traj, initial=True)
                 e['cum_log_escore_i'] = k*e['cum_score_i']
-            cum_score_f = eval_cum_score(traj)
+            cum_score_f = absolute_score(traj)
             score = cum_score_f - e['cum_score_i']
             if telescopic_canceling:
                 cum_log_escore_f = k*cum_score_f
@@ -108,12 +116,11 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canc
                 cum_log_escore_f = e['cum_log_escore_i'] + k*score
                 escore = np.exp(k*score)
 
-
         else:
             if 'cum_score_i' not in e: # TODO: maybe this is not the best approach
                 e['cum_score_i'] = 0
                 e['cum_log_escore_i'] = 0
-            score = eval_score(traj)
+            score = eval_score_func(traj)
             cum_score_f = e['cum_score_i'] + score
             if telescopic_canceling:
                 cum_log_escore_f = k*cum_score_f
@@ -151,10 +158,22 @@ def compute_score(k: float=0.0, folder: str=None, from_cum=True, telescopic_canc
 if __name__ == '__main__':
     k = float(sys.argv[1])
     folder = sys.argv[2]
-    make_traj_script = sys.argv[3]
-    if make_traj_script.lower() == 'none':
-        make_traj_script = None
 
-    with ut.TelegramLogger(logger, *(sys.argv[4:])):
-        compute_score(k, folder, make_traj_script=make_traj_script)
+    # get kwargs from the environment
+    kwarg2envvar = {
+        'mode': 'REA_CS_MODE',
+        'make_traj_script': 'REA_MAKE_TRAJ_SCRIPT',
+    }
+    kwargs = {}
+    for k,ev in kwarg2envvar.items():
+        try:
+            v = os.environ[ev]
+            if v == '':
+                v = None
+            kwargs[k] = v
+        except KeyError:
+            logger.warning(f'{ev} is not set: using default value for {k}')
+
+    with ut.TelegramLogger(logger, *(sys.argv[3:])):
+        compute_score(k, folder, **kwargs)
     
