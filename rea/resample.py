@@ -146,14 +146,14 @@ if __name__ == '__main__':
         'cloning_script': 'REA_CLONING_SCRIPT',
     }
     kwargs = {}
-    for k,ev in kwarg2envvar.items():
+    for kw,ev in kwarg2envvar.items():
         try:
             v = os.environ[ev]
             if v == '':
                 v = None
-            kwargs[k] = v
+            kwargs[kw] = v
         except KeyError:
-            logger.warning(f'{ev} is not set: using default value for {k}')
+            logger.warning(f'{ev} is not set: using default value for {kw}')
 
     with ut.TelegramLogger(logger, *(sys.argv[3:])):
         resample(current_folder, previous_folder, **kwargs)

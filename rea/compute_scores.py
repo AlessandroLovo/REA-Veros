@@ -93,7 +93,7 @@ def compute_score(k: float=0.0, folder: str=None, mode='relative', from_cum=True
         raise ValueError(f'unrecognized {mode = }')
 
     # compute the scores
-    logger.info('Computing scores for each ensemble member')
+    logger.info(f'Computing scores for each ensemble member: {k = }, {mode = }')
     escores = []
     for ename, e in d['members'].items():
         traj = f'{folder}/{ename}-traj.npy'
@@ -167,14 +167,14 @@ if __name__ == '__main__':
         'make_traj_script': 'REA_MAKE_TRAJ_SCRIPT',
     }
     kwargs = {}
-    for k,ev in kwarg2envvar.items():
+    for kw,ev in kwarg2envvar.items():
         try:
             v = os.environ[ev]
             if v == '':
                 v = None
-            kwargs[k] = v
+            kwargs[kw] = v
         except KeyError:
-            logger.warning(f'{ev} is not set: using default value for {k}')
+            logger.warning(f'{ev} is not set: using default value for {kw}')
 
     with ut.TelegramLogger(logger, *(sys.argv[3:])):
         compute_score(k, folder, **kwargs)
