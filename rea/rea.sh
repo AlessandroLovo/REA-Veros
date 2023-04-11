@@ -623,13 +623,19 @@ if $cluster ; then
 fi
 
 # export variables for computing scores
-if [[ "${cs_mode}" != "absolute" && "${cs_mode}" != "relative" ]] ; then
+if [[ "${cs_mode}" == a* ]] ; then
+    cs_mode="absolute"
+elif [[ "${cs_mode}" == r* ]] ; then
+    cs_mode="relative"
+else
     echo "Invalide score mode: ${cs_score}"
     return 1
     exit 1
 fi
 export REA_CS_MODE=$cs_mode
 export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
+
+
 
 # set the proper run folder and iteration number
 i0=0

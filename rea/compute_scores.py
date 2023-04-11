@@ -65,6 +65,8 @@ def compute_score(k: float=0.0, folder: str=None, mode='relative', from_cum=True
         biasing parameter, conjugated to the score. The higher the values, the sharper the selection. k=0 means uniform weight to all trajectories regardless of the score
     folder : str
         folder where the ensemble is located. Must contain a properly initialized `info.json` file
+    mode : 'relative' or 'absolute'
+        how to compute the score: progress during iteration (relative) or absolute value at the end of the iteration
     from_cum : bool
         Whether to compute the score directly or from the cumulative score difference. The latter is useful if it is easier to compute the cumulative score, for instance when there is a time average.
     telescopic_canceling : bool
