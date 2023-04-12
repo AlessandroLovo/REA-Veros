@@ -342,8 +342,8 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 fi
 
                 # check if we can submit another job by looking at the queue
-                if [[ $batch -gt 1 ]] ; then
-                    sleep $check_every # wait for queue to update
+                if [[ $batch -gt 1 ]] ; then # wait for queue to update
+                    sleep $check_every
                 fi
                 while [[ $(squeue --me | wc -l) -gt $msj ]] ; do
                     sleep $check_every
@@ -354,14 +354,16 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 batch_launch_file="$it_folder/batch_launch-$batch.sh"
                 cp $batch_launch_template $batch_launch_file
 
-                python log2telegram.py \""$HOSTNAME: Launching batch $batch"\" 20 $TARGS
                 for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
                     echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
                     echo "sleep 30s" >> $batch_launch_file
                 done
                 echo "wait" >> $batch_launch_file
+                echo "date" >> $batch_launch_file
+                echo "echo DONE" >> $batch_launch_file
                 echo "" >> $batch_launch_file
 
+                python log2telegram.py \""$HOSTNAME: Launching batch $batch"\" 20 $TARGS
                 # submit job    
                 $sbatch_script $dynamics_directives -o $it_folder/b$batch.slurm.out -e $it_folder/b$batch.slurm.err --job-name=rea_b$batch $batch_launch_file &
 
@@ -860,7 +862,7 @@ echo "Completed: $end_time" >> $arg_file
 echo >> $arg_file
 echo >> $arg_file
 
-# unset env variables
+# unset exported env variables
 unset REA_CLONING_SCRIPT
 unset REA_CS_MODE
 unset REA_MAKE_TRAJ_SCRIPT
