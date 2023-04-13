@@ -11,7 +11,7 @@ import veros.tools
 from veros.core.utilities import enforce_boundaries
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_FILES = veros.tools.get_assets('global_flexible', os.path.join(BASE_PATH, 'assets.yml'))
+DATA_FILES = veros.tools.get_assets('global_flexible', os.path.join(BASE_PATH, '../veros/assets.yml'))
 
 
 class GlobalFlexibleResolutionSetup(VerosSetup):
@@ -140,7 +140,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
                 comm=rs.mpi_comm,
             )
 
-        with h5netcdf.File(f'{BASE_PATH}/forcing_1deg_global_interp_hosing.nc', 'r', **kwargs) as forcing_file:
+        with h5netcdf.File(f'{BASE_PATH}/../veros/forcing_1deg_global_hosing.nc', 'r', **kwargs) as forcing_file:
 
             var_obj = forcing_file.variables[var]
             return np.array(var_obj[idx].astype(str(var_obj.dtype))).T
