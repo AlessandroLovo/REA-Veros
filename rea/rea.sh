@@ -323,21 +323,31 @@ load_modules () {
 
 # run the dynamics for one timestep of the algorithm
 propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
-    echo "$HOSTNAME: Starting dynamics: $(date)" >> $dyn_log
+    local n=$nens
+    local members_ids=($(seq -f "%0${#nens}g" 1 $nens)) # generate the array of ids for the ensemble members
+    if [[ -z $failed_members ]] ; then        
+        echo "$HOSTNAME: Starting dynamics: $(date)" >> $dyn_log
+    else
+        n=${#failed_members[@]}
+        members_ids=$failed_members
+        echo "$HOSTNAME: Fixing dynamics for $n members: ${failed_members[@]}. Starting: $(date)" >> $dyn_log
+    fi
+
     if $cluster ; then
         if $handle_modules ; then
             load_modules $dynamics_modules # load modules for running the dynamics
         fi
 
         if [[ $epj -gt 1 ]] ; then # more than one ensemble member per job
-            local last_e=0
+            local last_i=0
+            local end_i=0
             local batch=1
             local keep_going=true
             while $keep_going ; do
-                if [[ $(($nens - $epj)) -gt $last_e ]] ; then
-                    end_e=$(($last_e + $epj))
+                if [[ $(($n - $epj)) -gt $last_i ]] ; then
+                    end_i=$(($last_i + $epj))
                 else
-                    end_e=$nens
+                    end_i=$n
                     keep_going=false
                 fi
 
@@ -354,7 +364,8 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 batch_launch_file="$it_folder/batch_launch-$batch.sh"
                 cp $batch_launch_template $batch_launch_file
 
-                for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+                for i in $(seq $last_i $(($end_i - 1)) ) ; do
+                    ens=${members_ids[$i]}
                     echo "$dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &" >> $batch_launch_file
                     echo "sleep 30s" >> $batch_launch_file
                 done
@@ -368,7 +379,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
                 $sbatch_script $dynamics_directives -o $it_folder/b$batch.slurm.out -e $it_folder/b$batch.slurm.err --job-name=rea_b$batch $batch_launch_file &
 
                 batch=$(($batch + 1))
-                last_e=$end_e
+                last_i=$end_i
             done
 
             # wait for the queue to empty
@@ -377,8 +388,9 @@ propagate () { # accepts as only argument the optional init file. If not provide
             done
         
         else # in this case is much simpler: we just send each member to the queue independently
-            for ens in $(seq -f "%0${#nens}g" 1 $nens) ; do # 0-pad the number of the ensemble member
-                jobID=$((10#$ens % $msj)) # convert in base 10 and take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
+            for i in $(seq 0 $(($n - 1)) ) ; do
+                ens=${members_ids[$i]}
+                jobID=$(($i % $msj)) # take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
                 $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $1 &
             done
             wait
@@ -390,25 +402,27 @@ propagate () { # accepts as only argument the optional init file. If not provide
         fi
 
     else
-        # propagate ensemble members in batches (if msj==nens there will be only one batch)
-        local last_e=0
+        # propagate ensemble members in batches (if msj==n there will be only one batch)
+        local last_i=0
+        local end_i=0
         local batch=1
         local keep_going=true
         while $keep_going ; do
-            if [[ $(($nens - $msj)) -gt $last_e ]] ; then
-                end_e=$(($last_e + $msj))
+            if [[ $(($n - $msj)) -gt $last_i ]] ; then
+                end_i=$(($last_i + $msj))
             else
-                end_e=$nens
+                end_i=$n
                 keep_going=false
             fi
 
             python log2telegram.py \""$HOSTNAME: Launching batch $batch"\" 20 $TARGS
-            for ens in $(seq -f "%0${#nens}g" $(($last_e + 1)) $end_e ) ; do
+            for i in $(seq $last_i $(($end_i - 1)) ) ; do
+                ens=${members_ids[$i]}
                 $dynamics_script $T $it_folder/e$ens $1 >$it_folder/e$ens.out 2>$it_folder/e$ens.err &
             done
             wait
             batch=$(($batch + 1))
-            last_e=$end_e
+            last_i=$end_i
         done
     fi
     echo "Completed: $(date)" >> $dyn_log
