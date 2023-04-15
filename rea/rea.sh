@@ -430,6 +430,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
 
 detect_errors () { # takes as input the folder that will contain *.err files
     errors=false
+    error_files=()
     local fol=$1 # folder in which to look for error files
     local nl=''
     local f=''
@@ -446,6 +447,7 @@ detect_errors () { # takes as input the folder that will contain *.err files
             else
                 echo "Errors also in $f"
             fi
+            error_files+=($f)
         fi
     done
 }
@@ -503,6 +505,8 @@ init_ensemble_script='' # if provided script for generating an ensemble from the
 p="0" # prefix for the run name
 name='' # name of the run
 errors=false
+error_files=()
+failed_members=''
 
 # model specific parameters
 model=''
