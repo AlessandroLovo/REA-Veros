@@ -323,14 +323,14 @@ load_modules () {
 
 # run the dynamics for one timestep of the algorithm
 propagate () { # accepts as only argument the optional init file. If not provided, the script will look for init files for each ensemble members
-    local n=$nens
+    local ne=$nens
     local members_ids=($(seq -f "%0${#nens}g" 1 $nens)) # generate the array of ids for the ensemble members
     if [[ -z $failed_members ]] ; then        
         echo "$HOSTNAME: Starting dynamics: $(date)" >> $dyn_log
     else
-        n=${#failed_members[@]}
+        ne=${#failed_members[@]}
         members_ids=$failed_members
-        echo "$HOSTNAME: Fixing dynamics for $n members: ${failed_members[@]}. Starting: $(date)" >> $dyn_log
+        echo "$HOSTNAME: Fixing dynamics for $ne members: ${failed_members[@]}. Starting: $(date)" >> $dyn_log
     fi
 
     if $cluster ; then
@@ -344,10 +344,10 @@ propagate () { # accepts as only argument the optional init file. If not provide
             local batch=1
             local keep_going=true
             while $keep_going ; do
-                if [[ $(($n - $epj)) -gt $last_i ]] ; then
+                if [[ $(($ne - $epj)) -gt $last_i ]] ; then
                     end_i=$(($last_i + $epj))
                 else
-                    end_i=$n
+                    end_i=$ne
                     keep_going=false
                 fi
 
@@ -388,7 +388,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
             done
         
         else # in this case is much simpler: we just send each member to the queue independently
-            for i in $(seq 0 $(($n - 1)) ) ; do
+            for i in $(seq 0 $(($ne - 1)) ) ; do
                 ens=${members_ids[$i]}
                 jobID=$(($i % $msj)) # take the modulus wrt msj: this way we will have msj distinct job names, which, thanks to the singleton directive, means there will be at most msj jobs running at the same time
                 $sbatch_script $dynamics_directives -o $it_folder/e$ens.slurm.out -e $it_folder/e$ens.slurm.err --job-name=rea_d$jobID $dynamics_script $T $it_folder/e$ens $1 &
@@ -402,16 +402,16 @@ propagate () { # accepts as only argument the optional init file. If not provide
         fi
 
     else
-        # propagate ensemble members in batches (if msj==n there will be only one batch)
+        # propagate ensemble members in batches (if msj==ne there will be only one batch)
         local last_i=0
         local end_i=0
         local batch=1
         local keep_going=true
         while $keep_going ; do
-            if [[ $(($n - $msj)) -gt $last_i ]] ; then
+            if [[ $(($ne - $msj)) -gt $last_i ]] ; then
                 end_i=$(($last_i + $msj))
             else
-                end_i=$n
+                end_i=$ne
                 keep_going=false
             fi
 
