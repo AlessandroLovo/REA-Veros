@@ -79,6 +79,11 @@ parse_command_line () { # you should give it "$@"
                 shift
                 shift
                 ;;
+            --max-reruns) # maximum number of times to rerun failed ensemble members
+                max_reruns="$2"
+                shift
+                shift
+                ;;
             -j|--jobs) # maximum number of simultaneous ensemble jobs running
                 msj="$2"
                 shift
@@ -219,6 +224,7 @@ Positional arguments are ignored. The options are the following (the ones enclos
     [--cloning-script]          script for cloning trajectories
     [--make-traj-script]        script for creating the trajectory of the observable used for computing the scores
     
+    [--max-reruns]              maximum number of times to re-run failed ensemble members
     [-j|--jobs]                 maximum number of simultaneously running jobs members
     [-J|--members-per-job]      maximum number of ensemble members for each job (default 1).
 
@@ -275,6 +281,7 @@ summary () {
     echo "    dynamics_script = $dynamics_script"
     echo "    cloning_script = $cloning_script"
     echo "    make_traj_script = $make_traj_script"
+    echo "Maximum number of failures for ensemble members: $max_reruns"
     echo "Maximum simultaneous jobs: $msj"
     if $cluster ; then
         echo "Running on cluster $cluster_name"
@@ -331,6 +338,7 @@ propagate () { # accepts as only argument the optional init file. If not provide
         ne=${#failed_members[@]}
         members_ids=$failed_members
         echo "$HOSTNAME: Fixing dynamics for $ne members: ${failed_members[@]}. Starting: $(date)" >> $dyn_log
+        python log2telegram.py \""$HOSTNAME: Fixing dynamics for $ne members: ${failed_members[@]}"\" 35 $TARGS
     fi
 
     if $cluster ; then
@@ -465,6 +473,36 @@ check () { # takes as input the folder in which to check that everything is fine
     return 0
 }
 
+propagate_and_rerun_failed () {
+    failed_members=()
+    local rerun_iteration=0
+
+    while [[ $rerun_iteration -lt $(($max_reruns + 1)) ]] ; do
+        propagate $1
+
+        failed_members=()
+        detect_errors $it_folder
+        if $errors ; then # some ensemble members failed
+            rerun_iteration=$(($rerun_iteration + 1))
+
+            for err_file in ${error_files[@]} ; do # get the ids of the failed members
+                ens=${err_file##*/e} # remove all the path and the leading e
+                ens=${ens%.*} # remove the .err
+                failed_members+=($ens)
+            done
+            if [[ ${#error_files[@]} != ${#failed_members[@]} ]] ;  then
+                echo "Size mismatch between failed_members and error_files"
+                return 1
+            fi
+
+        else # all fine, we can exit
+            break
+        fi
+
+    done
+    return 0
+}
+
 # ==============================================================================================
 # ==============================================================================================
 
@@ -506,7 +544,8 @@ p="0" # prefix for the run name
 name='' # name of the run
 errors=false
 error_files=()
-failed_members=''
+failed_members=()
+max_reruns=1
 
 # model specific parameters
 model=''
@@ -787,11 +826,9 @@ for n in $(seq 0 $NITER) ; do
             fi
 
             # run the dynamics with an init file (if provided)
-            propagate $init_file
-            
-            # check that everything went smoothly
-            check $it_folder
-            if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+            propagate_and_rerun_failed $init_file
+            if [[ $? -gt 0 ]] || $errors ; then # stop the script if errors in the function or still some ensemble members have errors
+                log_failure
                 return 1
                 exit 1
             fi
@@ -859,11 +896,9 @@ for n in $(seq 0 $NITER) ; do
         if [[ $n != $NITER ]] ; then # do not propagate the last isteration
             python log2telegram.py \""$HOSTNAME:---Propagating---"\" 25 $TARGS
 
-            propagate
-
-            # check that everything went smoothly
-            check $it_folder
-            if [[ $? -gt 0 ]] ; then # stop the script if check detects errors
+            propagate_and_rerun_failed
+            if [[ $? -gt 0 ]] || $errors ; then # stop the script if errors in the function or still some ensemble members have errors
+                log_failure
                 return 1
                 exit 1
             fi
