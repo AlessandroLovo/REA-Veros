@@ -31,7 +31,8 @@ fi
 
 T=$(($1*31104000))
 
+echo Starting: $(date)
 veros resubmit -i $2 -n 1 -l $T -c "$veros_mpi_cmd python ../veros/global_flexible.py -b numpy -v debug -n 6 2 -s restart_input_filename $init_file" 
-
+echo Done: $(date)
 #--callback "sbatch veros_batch.sh"
 # 3110400000 -> 100 years
