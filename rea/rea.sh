@@ -494,7 +494,7 @@ propagate_and_rerun_failed () {
 
             for err_file in ${error_files[@]} ; do # get the ids of the failed members
                 ens=${err_file##*/e} # remove all the path and the leading e
-                ens=${ens%.*} # remove the .err
+                ens=${ens%%.*} # remove the .err or .slurm.err
                 failed_members+=($ens)
             done
             if [[ ${#error_files[@]} != ${#failed_members[@]} ]] ;  then
