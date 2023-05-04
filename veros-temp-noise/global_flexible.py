@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import numpy as np
 import h5netcdf
 import scipy.ndimage
@@ -12,6 +13,11 @@ from veros.core.utilities import enforce_boundaries
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_FILES = veros.tools.get_assets('global_flexible', os.path.join(BASE_PATH, '../veros/assets.yml'))
+
+try:
+    NOISE_PRODUCT_REL_PATH = os.environ['NOISE_PRODUCT_FOLDER']
+except KeyError:
+    NOISE_PRODUCT_REL_PATH = ''
 
 
 class GlobalFlexibleResolutionSetup(VerosSetup):
@@ -32,14 +38,17 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     equatorial_grid_spacing_factor = 0.66
     polar_grid_spacing_factor = None
 
-    lm  = np.load(f'{BASE_PATH}/landMask.npy') # the noise will be applied only to the sea
-    pc_re = np.load(f'{BASE_PATH}/PCs.npy') # time series for the components of the EOFs
-    eof_re = lm*np.load(f'{BASE_PATH}/EOFs.npy') # EOF spatial patterns
-    rho_re = np.load(f'{BASE_PATH}/yw_rho.npy') # coefficients of the autoregressive model
-    sig_re = np.load(f'{BASE_PATH}/yw_sigma.npy') # amplitudes of the white noise for each eof
+    # load noise product
+    NOISE_PATH = (Path(BASE_PATH) / NOISE_PRODUCT_REL_PATH).resolve()
+    print(f'Loading noise product from {str(NOISE_PATH)}')
+    lm  = np.load(NOISE_PATH / 'landMask.npy') # the noise will be applied only to the sea
+    pc_re = np.load(NOISE_PATH / 'PCs.npy') # time series for the components of the EOFs
+    eof_re = lm*np.load(NOISE_PATH / 'EOFs.npy') # EOF spatial patterns (multiplied by the land mask)
+    rho_re = np.load(NOISE_PATH / 'yw_rho.npy') # coefficients of the autoregressive model
+    sig_re = np.load(NOISE_PATH / 'yw_sigma.npy') # amplitudes of the white noise for each eof
+    index_re = np.load(NOISE_PATH / 'Lags.npy') # number of lags (i.e. autoregressive terms) for each eof
+    
     dim_re, n_pc_re = np.shape(pc_re)
-    # number of lags (i.e. autoregressive terms) for each eof
-    index_re = np.load(f'{BASE_PATH}/Lags.npy')
     pc_lag_re = np.zeros([n_pc_re,int(np.amax(index_re))])
     lag_re = int(np.amax(index_re))
 

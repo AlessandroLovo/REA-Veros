@@ -64,6 +64,11 @@ parse_command_line () { # you should give it "$@"
                 shift
                 shift
                 ;;
+            -N|--noise)
+                noise_product_folder="$2"
+                shift
+                shift
+                ;;
             -p|--prefix) # prefix in naming the run folder
                 p="$2"
                 shift
@@ -223,6 +228,7 @@ Positional arguments are ignored. The options are the following (the ones enclos
     [-d|--dynamics]             script for running the dynamics
     [--cloning-script]          script for cloning trajectories
     [--make-traj-script]        script for creating the trajectory of the observable used for computing the scores
+    [-N|--noise]                path to folder with appropriate noise product for the model
     
     [--max-reruns]              maximum number of times to re-run failed ensemble members
     [-j|--jobs]                 maximum number of simultaneously running jobs members
@@ -281,6 +287,7 @@ summary () {
     echo "    dynamics_script = $dynamics_script"
     echo "    cloning_script = $cloning_script"
     echo "    make_traj_script = $make_traj_script"
+    echo "    noise_product_folder = $noise_product_folder"
     echo "Maximum number of failures for ensemble members: $max_reruns"
     echo "Maximum simultaneous jobs: $msj"
     if $cluster ; then
@@ -555,9 +562,10 @@ dynamics_script=''
 dynamics_modules=''
 cloning_script=''
 make_traj_script=''
-msj=''
+noise_product_folder=''
 
 # batching parameters
+msj=''
 epj=1
 batch_launch_template="batch_launch_template.sh"
 check_every="1m"
@@ -765,11 +773,12 @@ echo
 start_time=$(date)
 
 # export env variables for subprocesses
-export REA_SRUN_MPI_ENABLED=$srun_mpi
-export REA_CS_MODE=$cs_mode
+export NOISE_PRODUCT_FOLDER=$noise_product_folder
 export REA_MAKE_TRAJ_SCRIPT=$make_traj_script
+export REA_CS_MODE=$cs_mode
 export REA_CLONING_SCRIPT=$cloning_script
 
+export REA_SRUN_MPI_ENABLED=$srun_mpi
 
 echo "Writing info to $last_run_file"
 # with the first line we overwrite the file
@@ -916,9 +925,11 @@ echo >> $arg_file
 echo >> $arg_file
 
 # unset exported env variables
+unset NOISE_PRODUCT_FOLDER
 unset REA_CLONING_SCRIPT
 unset REA_CS_MODE
 unset REA_MAKE_TRAJ_SCRIPT
+
 unset REA_SRUN_MPI_ENABLED
 
 python log2telegram.py \""$HOSTNAME:\\n\\nRUN COMPLETED"\" 45 $TARGS
