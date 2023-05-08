@@ -300,14 +300,15 @@ summary () {
         fi
         echo "Maximum ensemble members per job: $epj"
         if [[ $epj -gt 1 ]] ; then
-            echo "   checking the queue every: $check_every"
-            echo "   batch launch template: $batch_launch_template"
+            echo "    checking the queue every: $check_every"
+            echo "    batch launch template: $batch_launch_template"
         fi
         if $handle_modules ; then
+            echo "modules:"
             echo "    python_modules   : $python_modules"
             echo "    dynamics_modules : $dynamics_modules"
         else
-            echo "    without handling modules"
+            echo "without handling modules"
         fi
         if $srun_mpi ; then
             echo "    using srun --mpi for parallelization"
