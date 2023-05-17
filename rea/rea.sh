@@ -452,7 +452,7 @@ detect_errors () { # takes as input the folder that will contain *.err files
     local f=''
     for f in $fol/*.err ; do
         nl=$(wc -m <$f)
-        if [[ $nl == 0 ]] ; then # error file contains something
+        if [[ $nl == 0 ]] ; then # error file is empty
             rm $f
         elif [[ $(tail -n 1 $f) == "srun: Step created for job"* ]] ; then # there were some errors but the job finally started
             echo "Non critical errors detected in $f"
@@ -494,6 +494,7 @@ propagate_and_rerun_failed () {
             rerun_iteration=$(($rerun_iteration + 1))
 
             for err_file in ${error_files[@]} ; do # get the ids of the failed members
+                mv $err_file $err_file-fail$rerun_iteration
                 ens=${err_file##*/e} # remove all the path and the leading e
                 ens=${ens%%.*} # remove the .err or .slurm.err
                 failed_members+=($ens)
