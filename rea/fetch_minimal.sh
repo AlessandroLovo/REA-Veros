@@ -106,7 +106,16 @@ if [[ ! -d $destination ]] ; then # destination directory doesn't exist: we scp 
     scp $folder.tar.gz $destination.tar.gz
 
     if [[ $? == 0 ]] ; then
-        tar xzf $destination.tar.gz 
+        echo "Successfully fetched archive of $folder: extracting it"
+
+        # split destination in filename and path
+        root_folder="${destination%/*}"
+        filename="${destination##*/}"
+
+        # move to directory, extract and move back
+        cd $root_folder
+        tar xzf $filename.tar.gz
+        cd -
     else
         echo "Could not fetch archive of $folder, trying to scp the folder itself"
         scp -r $folder "${destination%/*}"

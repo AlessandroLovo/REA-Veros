@@ -61,4 +61,10 @@ for subf in $folder/i* ; do
 done
 
 # compress into tar archive
-tar czf $folder_minimal.tar.gz $folder_minimal
+root_folder="${folder_minimal%/*}"
+filename="${folder_minimal##*/}"
+
+# move to directory, compress and move back
+cd $root_folder
+tar czf $filename.tar.gz $filename
+cd -
