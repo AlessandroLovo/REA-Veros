@@ -320,6 +320,8 @@ summary () {
     fi
     echo
     echo "Telegram logging level: $TLL"
+    echo "Telegram chat id: $CHAT_ID"
+    echo "Telegram bot token: $TBT"
     echo
     echo
 }
