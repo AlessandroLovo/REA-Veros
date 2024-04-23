@@ -101,8 +101,16 @@ if ! $proceed ; then
 fi
 
 
-if [[ ! -d $destination ]] ; then
-    scp -r $folder "${destination%/*}"
+if [[ ! -d $destination ]] ; then # destination directory doesn't exist: we scp the entire directory
+    # try to scp the tar archive if present
+    scp $folder.tar.gz $destination.tar.gz
+
+    if [[ $? == 0 ]] ; then
+        tar xzf $destination.tar.gz 
+    else
+        echo "Could not fetch archive of $folder, trying to scp the folder itself"
+        scp -r $folder "${destination%/*}"
+    fi
     return 0
     exit 0 # if return fails, we exit. If return succeeds this line won't be executed
 fi

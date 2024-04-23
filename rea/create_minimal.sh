@@ -59,3 +59,6 @@ for subf in $folder/i* ; do
         fi
     fi
 done
+
+# compress into tar archive
+tar czf $folder_minimal.tar.gz $folder_minimal
