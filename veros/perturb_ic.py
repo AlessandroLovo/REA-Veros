@@ -5,7 +5,13 @@ import os
 
 def perturb_ic(source, destination=None):
     '''
-    Perturbs the initial conditions by overwriting the restart file
+    Perturbs the initial conditions by overwriting the restart file. It acts on the temperature field T and and salt field S, independently on each grid point:
+
+    T -> T + T*0.001*normal(0,1)
+    S -> S + 0.002*normal(0,1)
+
+    T is in degrees C, S is in g/kg
+    Rough typical values are T ~ 5 +/- 8 and S ~ 34 +/- 0.2 
 
     Parameters
     ----------
