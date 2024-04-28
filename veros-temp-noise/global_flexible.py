@@ -236,7 +236,7 @@ class GlobalFlexibleResolutionSetup(VerosSetup):
     @veros_method(dist_safe=False, local_variables=['tempNoisefield1','tempNoisefield2'])
     def noise_initialize(self, vs): 
         self.pc_lag_re[:,0] = np.zeros_like(self.pc_re[0])
-        pc_series_re = np.zeros(self.n_pc_re)
+        pc_series_re = np.zeros(self.n_pc_re) # this line is useless
 
         for p in range(self.n_pc_re):
             lag = int(self.index_re[p])
