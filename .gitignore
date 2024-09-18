@@ -1,9 +1,33 @@
+# code
 *__pycache__*
 *.ipynb_checkpoints*
 *.vscode*
-*slurm-*
 *.DS_Store
 
+# data
 *HEAVY--*
-
 *__test__*
+*slurm-*
+
+# latex
+*synctex*
+*.acr
+*.acn
+*.alg
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.log
+*.lot
+*.out
+*.toc
