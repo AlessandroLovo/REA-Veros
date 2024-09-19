@@ -1,11 +1,10 @@
 \section{Rare-event sampling with the Giardina-Kurchan-Lecomte-Tailleur algorithm}\label{AppREA}
 
 Let us assume we are interested in a stochastic system $\text{d} X = f(X, t) \text{d} t + \sigma(X, t) \text{d} B(t)$ with $X \in \mathbb{R}^d$, and an observable $O(X(t)) \in \mathbb{R}$. We can then identify a region $\mathcal{A} \subset \mathbb{R}^d$ of the phase space that is not often visited by the system and has particular values of the observable $O$.
-We then define a score function $V(\{X\}, t)$ that is a proxy for the probability of trajectory $\{X\}$ reaching $\mathcal{A}$. 
+We then define a score function $V(\{X\}, t)$ that is a proxy for the probability of trajectory $\{X\}$ reaching $\mathcal{A}$.
 %At this stage, these definitions are very vague, as there are many variants of the algorithm. For example, we may want to reach $\mathcal{A}$ eventually, or within a specified time interval.
 
-For simplicity here, we will assume that the score function is either a simple function $v$ of the observable at time $t$, i.e. $V(\{X\}, t) = v(O(X(t)))$, or its time integral $V(\{X\}, t) = \int_{0}^t v(O(X(s)))\text{d} s$.
-In the present case,  a natural observable is the AMOC strength itself $O = \mathrm{AMOC}$, possibly time-averaged. Then, the simplest score function choice is using simply $V({X}, t) = -\mathrm{AMOC}(X(t))$. This choice makes the assumption of persistence to approximate probabilities, namely: ``the AMOC is more likely to collapse in the future if it is already weak right now''. 
+In our case, the observable is the AMOC strength itself $O = \mathrm{AMOC}$, possibly time-averaged. For simplicity here, we will use as score function the observable itself, $V({X}, t) = -\mathrm{AMOC}(X(t))$, which is a quite common choice in the literature (see for instance \cite{GKTL-Ly,Ragone24}). This choice makes the assumption of persistence to approximate probabilities, namely: ``the AMOC is more likely to collapse in the future if it is already weak right now''.
 %Whether this choice is justified will be discussed later, and for the moment, let us continue with the theoretical description of the algorithm, which is the same for any $V$.
 
 After we have defined the score function, we initialize $N$ ensemble members with trajectories $\{X^{(0)}_j\}, \, j = 1, \ldots, N$, each ending at time $t^{(0)}_j$. For simplicity and without loss of generality, we can assume $t^{(0)}_j = t_0 = 0$, and,
@@ -41,8 +40,8 @@ Once we have our initial ensemble, we need to select a resampling time $\tau$ an
         \end{enumerate}
 \end{enumerate}
 
-In the original paper by Giardina et al. \cite{GIA11}, the weights in point 3 are computed not as the improvement of the score function but as the score function itself at the end of the resampling step. However, in \cite{GAR06}, the authors suggest using the improvement of the score function. 
-% move to later. 
+In the original paper by Giardina et al. \cite{GIA11}, the weights in point 3 are computed not as the improvement of the score function but as the score function itself at the end of the resampling step. However, in \cite{GAR06}, the authors suggest using the improvement of the score function.
+% move to later.
 
 We implemented the algorithm both for a fully deterministic ocean-only Veros configuration, as well as for a configuration with a temperature noise component. In the deterministic case, in the cloning step 4.d we introduce a small perturbation to the trajectories added to the temperature $T$ and salinity $S$ fields, which allows them to diverge. The perturbation is defined as
 \begin{equation}\label{eq:veros:perturbation}
@@ -51,14 +50,14 @@ We implemented the algorithm both for a fully deterministic ocean-only Veros con
         S &\mapsto S + \epsilon_S \eta ,
     \end{aligned}
 \end{equation}
-where $\eta$ is sampled from a normal distribution with mean 0 and variance 1, independently for each field and grid point. The noise amplitudes are chosen to be $\epsilon_T = 0.001$ and $\epsilon_S = 0.002 \,\, \text{g} \, \text{kg}^{-1}$. Typical salinity values are around $34.5 \,\, \text{g} \, \text{kg}^{-1}$ with fluctuations of the order of $0.2 \,\, \text{g} \, \text{kg}^{-1}$, while temperature values have a mean of 5 deg C with a standard deviation of the order of 10 deg C, though the temperature distribution is strongly skewed due to the heating from the top. Thus, in Eq.~\ref{eq:veros:perturbation} we employ a perturbation that is multiplicative in temperature, such that the deep ocean temperatures that are close to 0 degrees are perturbed less than the warm surface ocean. The perturbations in salinity are additive, since all values are very close on an absolute scale. 
+where $\eta$ is sampled from a normal distribution with mean 0 and variance 1, independently for each field and grid point. The noise amplitudes are chosen to be $\epsilon_T = 0.001$ and $\epsilon_S = 0.002 \,\, \text{g} \, \text{kg}^{-1}$. Typical salinity values are around $34.5 \,\, \text{g} \, \text{kg}^{-1}$ with fluctuations of the order of $0.2 \,\, \text{g} \, \text{kg}^{-1}$, while temperature values have a mean of 5 deg C with a standard deviation of the order of 10 deg C, though the temperature distribution is strongly skewed due to the heating from the top. Thus, in Eq.~\ref{eq:veros:perturbation} we employ a perturbation that is multiplicative in temperature, such that the deep ocean temperatures that are close to 0 degrees are perturbed less than the warm surface ocean. The perturbations in salinity are additive, since all values are very close on an absolute scale.
 
 
 %The effect that this perturbation has on the branching of the clones is shown in \cref{fig:veros:clone-divergence}, where we follow 50 clones after the perturbation is applied at time 0. We can see that already after only 5 years the standard deviation of the ensemble is around 30\% of the standard deviation of the control run. However, after this first jump, the standard deviation increases much slower, appearing to saturate at around 60\% of the standard deviation of the control run. This suggests that longer timescales (centennial) are needed to fully separate the trajectories.
 
 
-%%% explain what the point of the following is... 
-To make inferences on the averages and probabilities of observables in the REA ensemble, we need to account for the fact that the ensemble is biased by the sampling. 
+%%% explain what the point of the following is...
+To make inferences on the averages and probabilities of observables in the REA ensemble, we need to account for the fact that the ensemble is biased by the sampling.
 Given an observable $U(\{X\})$, one can approximate its average over the stationary measure of the system with the empirical average over many realizations, where each trajectory has the same weight. The fact that we biased the trajectories by cloning and killing them is accounted for by the unbiasing weights $\pi_j^{(i)}$:
 
 \begin{equation}\label{eq:veros:unbiased-averaging}
@@ -78,12 +77,12 @@ Now, if we unravel the expression for the unbiasing weights, we get
 \begin{equation}
     \pi_j^{(I)} = \left(\prod_{i=1}^{I}{Z^{(i)}} \right) \exp \left( -k \left(V(\{X_j^{(I)}\}_{-T_\text{memory} \leq t \leq I\tau}) - V(\{X_j^{(I)}\}_{-T_\text{memory} \leq t \leq 0})\right)  \right),
 \end{equation}
-where we had a telescopic canceling in the exponential. 
+where we had a telescopic canceling in the exponential.
 %remove?
 This shows that the bias we introduced with the algorithm is proportional to the exponential of the improvement of the score over the whole algorithm run for each trajectory.
 
 % link with large deviation theory
-Having been developed to compute large deviation rate functions \cite{GIA06}, there is a large deviation principle for the variation of the score function 
+Having been developed to compute large deviation rate functions \cite{GIA06}, there is a large deviation principle for the variation of the score function
 %during the whole algorithm run
 \begin{equation}\label{eq:veros:delta-score}
     v_T = V(\{X\}_{t \leq T}) - V(\{X\}_{t \leq 0}) ,
@@ -102,7 +101,7 @@ The GKTL algorithm provides an efficient estimation of such scaled cumulant gene
 
 
 %%% NOTE we need to go from X to V(X) or U(X) here!!!
-We use Eq.~\ref{eq:veros:unbiased-averaging} to compute the unbiased probabilities of being below threshold $a$: 
+We use Eq.~\ref{eq:veros:unbiased-averaging} to compute the unbiased probabilities of being below threshold $a$:
 \begin{equation}\label{eq:veros:unbiased-probabilities}
         \mathbb{P} (X(T) \leq a) = \frac{1}{N} \sum_{j=1}^{n} \pi_j^{(I)} \mathbb{I}_{X_j^{(I)}(T) \leq a}.
 \end{equation}
@@ -127,10 +126,10 @@ In fact, it is possible to prove that there is an \emph{optimal} score function 
 Unfortunately, our ignorance of the committor function is often the reason we want to run the REA in the first place.
 
 %%% choice of hyperparameters:
-% Score function: AMOC strength averaged over 5 year interval. 
-To choose the resampling time of the rare event algorithm the autocorrelation time of the AMOC strength in control simulations was considered. At $\tau = 5$~yr the autocorrelation is around 0.4 and cloned trajectories are already starting to branch off. 
+% Score function: AMOC strength averaged over 5 year interval.
+To choose the resampling time of the rare event algorithm the autocorrelation time of the AMOC strength in control simulations was considered. At $\tau = 5$~yr the autocorrelation is around 0.4 and cloned trajectories are already starting to branch off.
 % Thus $\tau = 10$~yr is a candidate
-%We will try later to use τ = 10 yr, but 
+%We will try later to use τ = 10 yr, but
 Thereafter the autocorrelation does not fully drop off, and there is still correlation on the centennial timescale. Thus, $\tau = 50$~yr can be chosen, which gives ample time for clones to separate.
 %NOTE distinguish deterministic from noisy run here!!
 
