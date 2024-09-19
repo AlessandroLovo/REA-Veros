@@ -1,7 +1,9 @@
-\section{Rare-event sampling with the Giardina-Kurchan-Lecomte-Tailleur algorithm}\label{AppREA}
+\section{Rare-event sampling with the Giardin\`a-Kurchan-Lecomte-Tailleur algorithm}\label{AppREA}
+
+The general idea of the Giardin\`a-Kurchan-Lecomte-Tailleur algorithm is to propagate an ensemble of trajectories forward in time, iteratively cloning or killing them according to a metric of `goodness'. This way, the ensemble will gradually get `better' at sampling a particular rare event of interest. What follows is a detailed description of the algorithm.
 
 Let us assume we are interested in a stochastic system $\text{d} X = f(X, t) \text{d} t + \sigma(X, t) \text{d} B(t)$ with $X \in \mathbb{R}^d$, and an observable $O(X(t)) \in \mathbb{R}$. We can then identify a region $\mathcal{A} \subset \mathbb{R}^d$ of the phase space that is not often visited by the system and has particular values of the observable $O$.
-We then define a score function $V(\{X\}, t)$ that is a proxy for the probability of trajectory $\{X\}$ reaching $\mathcal{A}$.
+We then define a score function $V(\{X\}, t)$ that will work as a proxy for the probability of trajectory $\{X\}$ reaching $\mathcal{A}$.
 %At this stage, these definitions are very vague, as there are many variants of the algorithm. For example, we may want to reach $\mathcal{A}$ eventually, or within a specified time interval.
 
 In our case, the observable is the AMOC strength itself $O = \mathrm{AMOC}$, possibly time-averaged. For simplicity here, we will use as score function the observable itself, $V({X}, t) = -\mathrm{AMOC}(X(t))$, which is a quite common choice in the literature (see for instance \cite{GKTL-Ly,Ragone24}). This choice makes the assumption of persistence to approximate probabilities, namely: ``the AMOC is more likely to collapse in the future if it is already weak right now''.
