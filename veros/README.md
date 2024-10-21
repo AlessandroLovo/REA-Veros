@@ -47,3 +47,12 @@ Run initialized with `i_forc8375e-7/salt720ur375.0222.restart.5`, with 50 ensemb
 
 # Tests
 Other folders starting with `t` contain some methodological tests, and are present in every cluster. Nothing scientifically relevant
+
+---
+
+## Runs @ lorenz
+Cluster in Utrecht
+
+### r-0_minimal
+Run at k=0
+
