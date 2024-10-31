@@ -22,6 +22,7 @@ last_run_file="$HOME/.reav-last_run.txt"
 
 folder="$1"
 folder="${folder%/}"
+overwrite_lrf=true
 
 if [[ "$folder" == "last" ]] ; then
     if [[ ! -f $last_run_file ]] ; then
@@ -30,6 +31,7 @@ if [[ "$folder" == "last" ]] ; then
         exit 1
     fi
     folder=$(head -n 1 $last_run_file)
+    overwrite_lrf=false
 fi
 
 if [[ ! -d $folder ]] ; then
@@ -70,4 +72,6 @@ tar czf $filename.tar.gz $filename
 cd -
 
 # set last run file
-echo $folder > $last_run_file
+if [[ $overwrite_lrf == true ]] ; then
+    echo $folder > $last_run_file
+fi
