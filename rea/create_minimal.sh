@@ -68,3 +68,6 @@ filename="${folder_minimal##*/}"
 cd $root_folder
 tar czf $filename.tar.gz $filename
 cd -
+
+# set last run file
+echo $folder > $last_run_file
